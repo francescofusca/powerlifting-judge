@@ -1,0 +1,125 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">PL Judge</string>
+
+    <!-- Lift Types -->
+    <string name="squat">Squat</string>
+    <string name="bench_press">Panca Piana</string>
+    <string name="deadlift">Stacco</string>
+    <string name="sumo_deadlift">Stacco Sumo</string>
+
+    <!-- Main Menu -->
+    <string name="history">Cronologia</string>
+    <string name="settings">Impostazioni</string>
+    <string name="choose_lift">Scegli la tua alzata</string>
+
+    <!-- Judge Activity -->
+    <string name="start">INIZIA</string>
+    <string name="finish">FINISCI</string>
+    <string name="press_start">PREMI INIZIA</string>
+    <string name="preparing">PREPARATI...</string>
+    <string name="go">VAI!</string>
+    <string name="good_lift">OTTIMA ALZATA!</string>
+    <string name="ready_next_rep">PRONTO PER PROSSIMA REP</string>
+    <string name="reps">Reps</string>
+    <string name="target">Target</string>
+
+    <!-- Finish Dialog -->
+    <string name="finish_set">Termina Set</string>
+    <string name="completed_reps">Hai completato %d reps. Cosa vuoi fare?</string>
+    <string name="save">Salva</string>
+    <string name="modify">Modifica</string>
+    <string name="continue_lift">Continua</string>
+    <string name="modify_reps">Modifica Reps</string>
+    <string name="enter_correct_reps">Inserisci il numero corretto di ripetizioni:</string>
+    <string name="confirm_and_save">Conferma e Salva</string>
+    <string name="cancel">Annulla</string>
+    <string name="invalid_number">Numero non valido</string>
+
+    <!-- Set Summary -->
+    <string name="set_completed">SET COMPLETATO!</string>
+    <string name="total_reps">Ripetizioni Totali</string>
+    <string name="total_time">Tempo Totale</string>
+    <string name="average_per_rep">Media per Rep</string>
+    <string name="time_details">Dettaglio Tempi</string>
+    <string name="add_notes">Aggiungi Note</string>
+    <string name="notes_hint">Es: Serie pesante, ottima esecuzione...</string>
+    <string name="save_and_close">SALVA E CHIUDI</string>
+    <string name="discard_set">SCARTA SET</string>
+    <string name="discard_set_title">Scarta Set</string>
+    <string name="discard_set_message">Sei sicuro di voler scartare questo set? Non verrà salvato.</string>
+    <string name="discard">Scarta</string>
+    <string name="set_saved">Set salvato con successo!</string>
+
+    <!-- Set Detail -->
+    <string name="set_details">DETTAGLI SET</string>
+    <string name="no_notes">Nessuna nota</string>
+    <string name="edit_reps">MODIFICA REPS</string>
+    <string name="close">CHIUDI</string>
+    <string name="reps_updated">Reps aggiornate!</string>
+
+    <!-- History -->
+    <string name="lift_history">Cronologia Alzate</string>
+    <string name="no_lifts">Nessuna alzata registrata. Inizia ad allenarti!</string>
+    <string name="edit">Modifica</string>
+    <string name="delete">Elimina</string>
+    <string name="delete_lift">Elimina Alzata</string>
+    <string name="delete_lift_message">Vuoi eliminare questa alzata?</string>
+    <string name="lift_deleted">Alzata eliminata!</string>
+
+    <!-- Settings -->
+    <string name="settings_title">IMPOSTAZIONI</string>
+    <string name="settings_subtitle">Configura le soglie delle alzate e il timer</string>
+    <string name="countdown_timer">TIMER COUNTDOWN</string>
+    <string name="seconds">secondi</string>
+    <string name="second">secondo</string>
+    <string name="squat_target">SQUAT (Target)</string>
+    <string name="bench_target">PANCA PIANA (Target)</string>
+    <string name="deadlift_range">STACCO (Escursione)</string>
+    <string name="sumo_range">STACCO SUMO (Escursione)</string>
+    <string name="start_sound">SUONO DI START</string>
+    <string name="current_sound">Suono attuale: %s</string>
+    <string name="change_sound">CAMBIA SUONO</string>
+    <string name="select_start_sound">Seleziona Suono di Start</string>
+    <string name="sound_updated">Suono aggiornato a %s</string>
+    <string name="language_setting">LINGUA</string>
+    <string name="current_language">Lingua attuale: %s</string>
+    <string name="change_language">CAMBIA LINGUA</string>
+    <string name="select_language">Seleziona Lingua</string>
+    <string name="language_updated">Lingua aggiornata! Riavvia l\'app per applicare le modifiche.</string>
+
+    <!-- Languages -->
+    <string name="lang_english">Inglese</string>
+    <string name="lang_italian">Italiano</string>
+    <string name="lang_spanish">Spagnolo</string>
+    <string name="lang_russian">Russo</string>
+    <string name="lang_portuguese">Portoghese</string>
+    <string name="lang_german">Tedesco</string>
+    <string name="lang_french">Francese</string>
+    <string name="lang_japanese">Giapponese</string>
+
+    <!-- Phone Placement Instructions -->
+    <string name="squat_instruction">1. Telefono in tasca frontale STRETTA (sotto il bacino) o usa fascia sulla gamba per tenerlo fermo e dritto\n2. Premi INIZIA e preparati\n3. Esegui le alzate fino a %d°</string>
+    <string name="bench_instruction">1. Telefono su fascia del braccio con braccio teso\n2. Premi INIZIA e preparati\n3. Scendi al petto fino a %d°</string>
+    <string name="deadlift_instruction">1. Telefono in tasca frontale STRETTA (sotto il bacino) o usa fascia - il telefono NON deve ballare e deve restare dritto\n2. Premi INIZIA e preparati\n3. Tira su con escursione di %d°</string>
+    <string name="sumo_instruction">1. Telefono in tasca frontale STRETTA (sotto il bacino) o usa fascia - il telefono NON deve ballare e deve restare dritto\n2. Premi INIZIA e preparati\n3. Tira su con escursione di %d°</string>
+
+    <!-- Rep Stats -->
+    <string name="rep_number">Rep %d</string>
+    <string name="descent_time">↓ %s</string>
+    <string name="ascent_time">↑ %s</string>
+
+    <!-- Main Screen -->
+    <string name="main_subtitle">Seleziona l\'alzata da giudicare</string>
+    <string name="squat_hint">Telefono in tasca frontale</string>
+    <string name="bench_hint">Telefono al braccio (fascia) o tasca maglietta</string>
+    <string name="deadlift_hint">Telefono in tasca frontale</string>
+    <string name="sumo_hint">Telefono in tasca frontale</string>
+
+    <!-- Common -->
+    <string name="by_ff9">by ff9</string>
+    <string name="error">Errore: %s</string>
+    <!-- History -->
+    <string name="history_subtitle">Tutte le tue alzate • Tocca per vedere i dettagli</string>
+
+</resources>

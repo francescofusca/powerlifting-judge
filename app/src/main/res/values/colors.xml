@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nuovo schema colori: Bianco e Rosso Porpora Soft -->
+    <color name="primary_bg">#FFFFFF</color>
+    <color name="secondary_bg">#F8F9FA</color>
+    <color name="card_bg">#FEFEFE</color>
+
+    <!-- Rosso porpora soft -->
+    <color name="primary_red">#C9184A</color>
+    <color name="accent_red">#FF4D6D</color>
+    <color name="soft_red">#FFB3C1</color>
+    <color name="light_red">#FFE5EC</color>
+
+    <!-- Nero soft -->
+    <color name="primary_black">#2B2D42</color>
+    <color name="secondary_black">#1A1B26</color>
+    <color name="text_black">#3D3D3D</color>
+
+    <!-- Testi -->
+    <color name="text_primary">#2B2D42</color>
+    <color name="text_secondary">#8D99AE</color>
+    <color name="text_light">#FFFFFF</color>
+
+    <!-- Accenti -->
+    <color name="success_green">#06D6A0</color>
+    <color name="warning_yellow">#FFB703</color>
+
+    <!-- Gradients -->
+    <color name="gradient_start">#FF4D6D</color>
+    <color name="gradient_end">#C9184A</color>
+
+    <!-- Old colors for compatibility -->
+    <color name="neon_green">#06D6A0</color>
+    <color name="neon_red">#C9184A</color>
+    <color name="neon_blue">#4CC9F0</color>
+    <color name="dark_bg">#0A0A0A</color>
+    <color name="accent_yellow">#FFB703</color>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
