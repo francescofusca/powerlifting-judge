@@ -1,6 +1,8 @@
-# PoweLift Judge ⚡
+# PL Judge ⚡
 
 <div align="center">
+
+<img src="images/logo.png" alt="PL Judge Logo" width="200"/>
 
 **Automatic Powerlifting Movement Judging System Using Device Sensors**
 
@@ -36,7 +38,7 @@
 
 ## 🎯 Overview
 
-**PoweLift Judge** is an Android application that leverages device sensors to automatically validate powerlifting movements in real-time. By utilizing the accelerometer, magnetometer, and rotation vector sensors, the app can accurately measure angular displacement during lifts and provide instant feedback through visual, audio, and haptic signals.
+**PL Judge** is an Android application that leverages device sensors to automatically validate powerlifting movements in real-time. By utilizing the accelerometer, magnetometer, and rotation vector sensors, the app can accurately measure angular displacement during lifts and provide instant feedback through visual, audio, and haptic signals.
 
 The application supports four major powerlifting movements:
 - **Squat** - Validates depth by measuring hip angle
@@ -746,10 +748,7 @@ This project is developed for educational purposes as part of a university Mobil
 
 ## 👤 Author
 
-**ff9**
-
-- GitHub: [@francescofusca](https://github.com/francescofusca)
-- Project: [powerlifting-judge](https://github.com/francescofusca/powerlifting-judge)
+**by ff9**
 
 ---
 
