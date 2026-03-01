@@ -85,16 +85,91 @@
     <string name="rep_number">Rep %d</string>
     <string name="descent_time">↓ %s</string>
     <string name="ascent_time">↑ %s</string>
+    <!-- Settings (new) -->
+    <string name="bench_hold_duration">DURÉE PAUSE DÉVELOPPÉ COUCHÉ</string>
+    <string name="hold_disabled">Désactivé</string>
+    <string name="restart_for_theme">Redémarrez l\'app pour appliquer le changement de thème.</string>
+    <string name="dark_mode_title">MODE SOMBRE</string>
+    <string name="on">Activé</string>
+    <string name="off">Désactivé</string>
+
+    <!-- Edit Notes -->
+    <string name="edit_notes">Modifier les Notes</string>
+
+    <!-- Multi-select & Tabs -->
+    <string name="all_lifts">Tous</string>
+    <string name="n_selected">%d sélectionnés</string>
+    <string name="delete_selected">Supprimer Sélectionnés</string>
+    <string name="delete_selected_message">Supprimer %d mouvements sélectionnés?</string>
+
+    <!-- Weight -->
+    <string name="weight">Poids</string>
+    <string name="enter_weight">Entrer le poids</string>
+    <string name="weight_unit">UNITÉ DE POIDS</string>
+    <string name="kg">kg</string>
+    <string name="lb">lb</string>
+
+    <!-- Personal Records -->
+    <string name="new_pr">NOUVEAU PR!</string>
+    <string name="new_pr_message">Nouveau record personnel pour %s!</string>
+
+    <!-- Export -->
+    <string name="export_data">Exporter</string>
+    <string name="export_success">Données exportées avec succès!</string>
+    <string name="export_empty">Aucune donnée à exporter</string>
+
+    <!-- Statistics -->
+    <string name="stats_title">STATISTIQUES</string>
+    <string name="total_sets">Séries Totales</string>
+    <string name="total_volume">Volume Total</string>
+    <string name="estimated_1rm">1RM Estimé</string>
+    <string name="best_set">Meilleure Série</string>
+    <string name="avg_descent">Moy. Descente</string>
+    <string name="avg_ascent">Moy. Montée</string>
+    <string name="avg_rep_time">Moy. Rep</string>
+    <string name="last_week">Dernière Semaine</string>
+    <string name="last_month">Dernier Mois</string>
+    <string name="weight_progression">Progression du Poids</string>
+    <string name="training_frequency">Fréquence</string>
+    <string name="no_weight_data">Aucune donnée de poids enregistrée</string>
+    <string name="view_stats">VOIR STATS</string>
+    <string name="no_stats">Données insuffisantes pour les statistiques</string>
+    <string name="reps_at_weight">%1$d reps @ %2$s</string>
+
     <string name="by_ff9">by ff9</string>
     <string name="error">Erreur: %s</string>
 
     <!-- Main Screen -->
     <string name="main_subtitle">Sélectionnez le mouvement à juger</string>
     <string name="squat_hint">Téléphone dans poche avant</string>
-    <string name="bench_hint">Téléphone sur bras (brassard) ou poche de chemise</string>
+    <string name="bench_hint">Téléphone sur brassard</string>
     <string name="deadlift_hint">Téléphone dans poche avant</string>
     <string name="sumo_hint">Téléphone dans poche avant</string>
     <!-- History -->
     <string name="history_subtitle">Tous vos mouvements • Touchez pour voir les détails</string>
+
+    <!-- Calibration -->
+    <string name="calibrate">CALIBRER</string>
+    <string name="calibrate_squat">Placez le téléphone dans la poche avant. Appuyez sur DÉMARRER, descendez au parallèle et MAINTENEZ 3 secondes.</string>
+    <string name="calibrate_bench">Placez le téléphone sur le brassard. Appuyez sur DÉMARRER, descendez au pec et MAINTENEZ 3 secondes.</string>
+    <string name="calibrate_deadlift">Placez le téléphone dans la poche avant. Appuyez sur DÉMARRER, tirez jusqu\'en haut et MAINTENEZ 3 secondes.</string>
+    <string name="calibrate_sumo">Placez le téléphone dans la poche avant. Appuyez sur DÉMARRER, tirez jusqu\'en haut et MAINTENEZ 3 secondes.</string>
+    <string name="hold_position">Maintenez la position…</string>
+    <string name="angle_detected">Angle détecté: %d°</string>
+    <string name="calibration_saved">Calibration enregistrée!</string>
+
+    <!-- RPE -->
+    <string name="rpe">RPE</string>
+    <string name="rpe_label">RPE (1–10)</string>
+    <string name="no_rpe">Non défini</string>
+    <string name="avg_rpe">RPE Moyen</string>
+
+    <!-- Body Weight -->
+    <string name="body_weight_setting">POIDS CORPOREL</string>
+    <string name="enter_body_weight">Entrez votre poids corporel</string>
+
+    <!-- Powerlifting Total -->
+    <string name="powerlifting_total">TOTAL POWERLIFTING</string>
+    <string name="relative_strength">Force Relative</string>
 
 </resources>

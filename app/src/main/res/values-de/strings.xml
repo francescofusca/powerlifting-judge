@@ -85,16 +85,91 @@
     <string name="rep_number">Wdhl %d</string>
     <string name="descent_time">↓ %s</string>
     <string name="ascent_time">↑ %s</string>
+    <!-- Settings (new) -->
+    <string name="bench_hold_duration">BANKDRÜCKEN HALTEDAUER</string>
+    <string name="hold_disabled">Deaktiviert</string>
+    <string name="restart_for_theme">Starten Sie die App neu, um die Themenänderung anzuwenden.</string>
+    <string name="dark_mode_title">DUNKELMODUS</string>
+    <string name="on">An</string>
+    <string name="off">Aus</string>
+
+    <!-- Edit Notes -->
+    <string name="edit_notes">Notizen Bearbeiten</string>
+
+    <!-- Multi-select & Tabs -->
+    <string name="all_lifts">Alle</string>
+    <string name="n_selected">%d ausgewählt</string>
+    <string name="delete_selected">Ausgewählte Löschen</string>
+    <string name="delete_selected_message">%d ausgewählte Übungen löschen?</string>
+
+    <!-- Weight -->
+    <string name="weight">Gewicht</string>
+    <string name="enter_weight">Gewicht eingeben</string>
+    <string name="weight_unit">GEWICHTSEINHEIT</string>
+    <string name="kg">kg</string>
+    <string name="lb">lb</string>
+
+    <!-- Personal Records -->
+    <string name="new_pr">NEUER PR!</string>
+    <string name="new_pr_message">Neuer persönlicher Rekord für %s!</string>
+
+    <!-- Export -->
+    <string name="export_data">Exportieren</string>
+    <string name="export_success">Daten erfolgreich exportiert!</string>
+    <string name="export_empty">Keine Daten zum Exportieren</string>
+
+    <!-- Statistics -->
+    <string name="stats_title">STATISTIKEN</string>
+    <string name="total_sets">Sätze Gesamt</string>
+    <string name="total_volume">Gesamtvolumen</string>
+    <string name="estimated_1rm">Geschätztes 1RM</string>
+    <string name="best_set">Bester Satz</string>
+    <string name="avg_descent">Ø Absenkung</string>
+    <string name="avg_ascent">Ø Aufstieg</string>
+    <string name="avg_rep_time">Ø Wdhl-Zeit</string>
+    <string name="last_week">Letzte Woche</string>
+    <string name="last_month">Letzter Monat</string>
+    <string name="weight_progression">Gewichtsprogression</string>
+    <string name="training_frequency">Häufigkeit</string>
+    <string name="no_weight_data">Keine Gewichtsdaten erfasst</string>
+    <string name="view_stats">STATISTIKEN</string>
+    <string name="no_stats">Nicht genügend Daten für Statistiken</string>
+    <string name="reps_at_weight">%1$d Wdhl @ %2$s</string>
+
     <string name="by_ff9">by ff9</string>
     <string name="error">Fehler: %s</string>
 
     <!-- Main Screen -->
     <string name="main_subtitle">Wählen Sie die zu beurteilende Übung</string>
     <string name="squat_hint">Telefon in Vordertasche</string>
-    <string name="bench_hint">Telefon am Armband oder Hemdtasche</string>
+    <string name="bench_hint">Telefon am Armband</string>
     <string name="deadlift_hint">Telefon in Vordertasche</string>
     <string name="sumo_hint">Telefon in Vordertasche</string>
     <!-- History -->
     <string name="history_subtitle">Alle Ihre Übungen • Tippen Sie für Details</string>
+
+    <!-- Calibration -->
+    <string name="calibrate">KALIBRIEREN</string>
+    <string name="calibrate_squat">Telefon in die Vordertasche. START drücken, zur Parallele gehen und 3 Sekunden HALTEN.</string>
+    <string name="calibrate_bench">Telefon am Armband. START drücken, Stange zur Brust senken und 3 Sekunden HALTEN.</string>
+    <string name="calibrate_deadlift">Telefon in die Vordertasche. START drücken, hochziehen bis zum Lockout und 3 Sekunden HALTEN.</string>
+    <string name="calibrate_sumo">Telefon in die Vordertasche. START drücken, hochziehen bis zum Lockout und 3 Sekunden HALTEN.</string>
+    <string name="hold_position">Position halten…</string>
+    <string name="angle_detected">Winkel erkannt: %d°</string>
+    <string name="calibration_saved">Kalibrierung gespeichert!</string>
+
+    <!-- RPE -->
+    <string name="rpe">RPE</string>
+    <string name="rpe_label">RPE (1–10)</string>
+    <string name="no_rpe">Nicht gesetzt</string>
+    <string name="avg_rpe">Durchschn. RPE</string>
+
+    <!-- Body Weight -->
+    <string name="body_weight_setting">KÖRPERGEWICHT</string>
+    <string name="enter_body_weight">Gib dein Körpergewicht ein</string>
+
+    <!-- Powerlifting Total -->
+    <string name="powerlifting_total">POWERLIFTING TOTAL</string>
+    <string name="relative_strength">Relative Stärke</string>
 
 </resources>

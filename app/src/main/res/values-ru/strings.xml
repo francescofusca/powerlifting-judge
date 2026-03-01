@@ -85,16 +85,91 @@
     <string name="rep_number">Повтор %d</string>
     <string name="descent_time">↓ %s</string>
     <string name="ascent_time">↑ %s</string>
+    <!-- Settings (new) -->
+    <string name="bench_hold_duration">ДЛИТЕЛЬНОСТЬ ПАУЗЫ ЖИМА</string>
+    <string name="hold_disabled">Отключено</string>
+    <string name="restart_for_theme">Перезапустите приложение для применения изменения темы.</string>
+    <string name="dark_mode_title">ТЁМНАЯ ТЕМА</string>
+    <string name="on">Вкл</string>
+    <string name="off">Выкл</string>
+
+    <!-- Edit Notes -->
+    <string name="edit_notes">Редактировать заметки</string>
+
+    <!-- Multi-select & Tabs -->
+    <string name="all_lifts">Все</string>
+    <string name="n_selected">%d выбрано</string>
+    <string name="delete_selected">Удалить выбранные</string>
+    <string name="delete_selected_message">Удалить %d выбранных упражнений?</string>
+
+    <!-- Weight -->
+    <string name="weight">Вес</string>
+    <string name="enter_weight">Введите вес</string>
+    <string name="weight_unit">ЕДИНИЦА ВЕСА</string>
+    <string name="kg">кг</string>
+    <string name="lb">фунт</string>
+
+    <!-- Personal Records -->
+    <string name="new_pr">НОВЫЙ PR!</string>
+    <string name="new_pr_message">Новый личный рекорд для %s!</string>
+
+    <!-- Export -->
+    <string name="export_data">Экспорт</string>
+    <string name="export_success">Данные успешно экспортированы!</string>
+    <string name="export_empty">Нет данных для экспорта</string>
+
+    <!-- Statistics -->
+    <string name="stats_title">СТАТИСТИКА</string>
+    <string name="total_sets">Всего сетов</string>
+    <string name="total_volume">Общий объём</string>
+    <string name="estimated_1rm">Расчётный 1ПМ</string>
+    <string name="best_set">Лучший сет</string>
+    <string name="avg_descent">Ср. опускание</string>
+    <string name="avg_ascent">Ср. подъём</string>
+    <string name="avg_rep_time">Ср. время повтора</string>
+    <string name="last_week">За неделю</string>
+    <string name="last_month">За месяц</string>
+    <string name="weight_progression">Прогресс веса</string>
+    <string name="training_frequency">Частота</string>
+    <string name="no_weight_data">Нет данных о весе</string>
+    <string name="view_stats">СТАТИСТИКА</string>
+    <string name="no_stats">Недостаточно данных для статистики</string>
+    <string name="reps_at_weight">%1$d повт. @ %2$s</string>
+
     <string name="by_ff9">by ff9</string>
     <string name="error">Ошибка: %s</string>
 
     <!-- Main Screen -->
     <string name="main_subtitle">Выберите упражнение для оценки</string>
     <string name="squat_hint">Телефон в переднем кармане</string>
-    <string name="bench_hint">Телефон на повязке для руки или кармане рубашки</string>
+    <string name="bench_hint">Телефон на повязке для руки</string>
     <string name="deadlift_hint">Телефон в переднем кармане</string>
     <string name="sumo_hint">Телефон в переднем кармане</string>
     <!-- History -->
     <string name="history_subtitle">Все ваши упражнения • Нажмите для просмотра деталей</string>
+
+    <!-- Calibration -->
+    <string name="calibrate">КАЛИБРОВКА</string>
+    <string name="calibrate_squat">Телефон в передний карман. Нажмите СТАРТ, присядьте до параллели и УДЕРЖИВАЙТЕ 3 секунды.</string>
+    <string name="calibrate_bench">Телефон на повязке для руки. Нажмите СТАРТ, опустите к груди и УДЕРЖИВАЙТЕ 3 секунды.</string>
+    <string name="calibrate_deadlift">Телефон в передний карман. Нажмите СТАРТ, потяните до верха и УДЕРЖИВАЙТЕ 3 секунды.</string>
+    <string name="calibrate_sumo">Телефон в передний карман. Нажмите СТАРТ, потяните до верха и УДЕРЖИВАЙТЕ 3 секунды.</string>
+    <string name="hold_position">Удерживайте позицию…</string>
+    <string name="angle_detected">Угол определён: %d°</string>
+    <string name="calibration_saved">Калибровка сохранена!</string>
+
+    <!-- RPE -->
+    <string name="rpe">RPE</string>
+    <string name="rpe_label">RPE (1–10)</string>
+    <string name="no_rpe">Не указано</string>
+    <string name="avg_rpe">Средний RPE</string>
+
+    <!-- Body Weight -->
+    <string name="body_weight_setting">ВЕС ТЕЛА</string>
+    <string name="enter_body_weight">Введите свой вес</string>
+
+    <!-- Powerlifting Total -->
+    <string name="powerlifting_total">СУММА ТРОЕБОРЬЯ</string>
+    <string name="relative_strength">Относительная сила</string>
 
 </resources>
