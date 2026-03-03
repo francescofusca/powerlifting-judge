@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 class LiftRepository(private val dao: LiftDao) {
 
+    suspend fun getAllLifts(): List<Lift> = dao.getAll()
+
     fun getAllLiftsFlow(): Flow<List<Lift>> = dao.getAllFlow()
 
     fun getLiftByIdFlow(id: Int): Flow<Lift?> = dao.getLiftByIdFlow(id)

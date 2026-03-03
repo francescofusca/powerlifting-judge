@@ -66,12 +66,21 @@ fun CalibrateScreen(
         }
     }
 
-    val instructionRes = when (state.liftType) {
-        LiftType.SQUAT -> R.string.calibrate_squat
-        LiftType.BENCH_PRESS -> R.string.calibrate_bench
-        LiftType.DEADLIFT -> R.string.calibrate_deadlift
-        LiftType.SUMO_DEADLIFT -> R.string.calibrate_sumo
+    val instructionText = if (state.isCustomExercise) {
+        stringResource(R.string.calibrate_custom)
+    } else {
+        stringResource(
+            when (state.liftType) {
+                LiftType.SQUAT -> R.string.calibrate_squat
+                LiftType.BENCH_PRESS -> R.string.calibrate_bench
+                LiftType.DEADLIFT -> R.string.calibrate_deadlift
+                LiftType.SUMO_DEADLIFT -> R.string.calibrate_sumo
+            }
+        )
     }
+
+    val displayName = if (state.isCustomExercise) state.customExerciseName
+                      else state.liftType.displayName
 
     Scaffold(
         topBar = {
@@ -101,14 +110,14 @@ fun CalibrateScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = state.liftType.displayName,
+                            text = displayName,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = stringResource(instructionRes),
+                            text = instructionText,
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()

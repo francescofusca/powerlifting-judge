@@ -172,4 +172,41 @@
     <string name="powerlifting_total">TOTAL POWERLIFTING</string>
     <string name="relative_strength">Fuerza Relativa</string>
 
+    <!-- Custom Exercises -->
+    <string name="add_exercise">Añadir Ejercicio</string>
+    <string name="exercise_name">Nombre del ejercicio</string>
+    <string name="add">Añadir</string>
+    <string name="delete_exercise">Eliminar Ejercicio</string>
+    <string name="delete_exercise_message">¿Eliminar \"%s\" y todas sus configuraciones?</string>
+    <string name="exercise_exists">Ya existe un ejercicio con este nombre</string>
+    <string name="custom_exercise_instruction">1. Coloca el teléfono de forma segura en la parte del cuerpo involucrada\n2. Pulsa START y prepárate\n3. Realiza el movimiento hasta %d°</string>
+    <string name="calibrate_custom">Coloca el teléfono de forma segura. Pulsa START, realiza el movimiento y MANTÉN la posición objetivo durante 3 segundos.</string>
+    <string name="custom_hint">Ejercicio personalizado</string>
+    <string name="custom_exercises_section">EJERCICIOS PERSONALIZADOS</string>
+
+    <!-- Hold Points -->
+    <string name="hold_points">PUNTOS DE HOLD</string>
+    <string name="add_hold_point">Agregar Hold Point</string>
+    <string name="hold_angle">Ángulo de Hold</string>
+    <string name="hold_duration">Duración del Hold</string>
+    <string name="hold_at_angle">Hold a %1$d\u00B0 por %2$s</string>
+    <string name="no_hold_points">Sin hold points</string>
+
+    <!-- Powerlifting Total Detail -->
+    <string name="current_total">TOTAL ACTUAL</string>
+    <string name="personal_records">RÉCORDS PERSONALES</string>
+    <string name="best_session_total">MEJOR TOTAL DE SESIÓN</string>
+    <string name="session_history">HISTORIAL DE SESIONES</string>
+    <string name="no_total_data">Sin datos de total.\nRegistra levantamientos con peso para SQ, BP y DL.</string>
+    <string name="tap_for_details">Toca para más detalles</string>
+
+    <!-- Backup / Restore -->
+    <string name="backup_restore">COPIA DE SEGURIDAD</string>
+    <string name="backup_data">EXPORTAR COPIA</string>
+    <string name="restore_data">IMPORTAR COPIA</string>
+    <string name="backup_success">¡Copia exportada con éxito!</string>
+    <string name="restore_success">¡Datos restaurados! Reinicia la app.</string>
+    <string name="restore_confirm">Esto reemplazará TODOS los datos actuales (levantamientos, ajustes, ejercicios) con los datos del backup. No se puede deshacer.\n\n¿Continuar?</string>
+    <string name="confirm_restore">Restaurar</string>
+
 </resources>

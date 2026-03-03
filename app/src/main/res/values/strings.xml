@@ -194,6 +194,43 @@
     <string name="powerlifting_total">POWERLIFTING TOTAL</string>
     <string name="relative_strength">Relative Strength</string>
 
+    <!-- Custom Exercises -->
+    <string name="add_exercise">Add Exercise</string>
+    <string name="exercise_name">Exercise name</string>
+    <string name="add">Add</string>
+    <string name="delete_exercise">Delete Exercise</string>
+    <string name="delete_exercise_message">Delete \"%s\" and all its settings?</string>
+    <string name="exercise_exists">An exercise with this name already exists</string>
+    <string name="custom_exercise_instruction">1. Place phone securely on the body part involved\n2. Press START and get ready\n3. Perform movement to %d°</string>
+    <string name="calibrate_custom">Place the phone securely. Press START, perform the movement and HOLD at the target position for 3 seconds.</string>
+    <string name="custom_hint">Custom exercise</string>
+    <string name="custom_exercises_section">CUSTOM EXERCISES</string>
+
+    <!-- Hold Points -->
+    <string name="hold_points">HOLD POINTS</string>
+    <string name="add_hold_point">Add Hold Point</string>
+    <string name="hold_angle">Hold Angle</string>
+    <string name="hold_duration">Hold Duration</string>
+    <string name="hold_at_angle">Hold at %1$d\u00B0 for %2$s</string>
+    <string name="no_hold_points">No hold points</string>
+
+    <!-- Powerlifting Total Detail -->
+    <string name="current_total">CURRENT TOTAL</string>
+    <string name="personal_records">PERSONAL RECORDS</string>
+    <string name="best_session_total">BEST SESSION TOTAL</string>
+    <string name="session_history">SESSION HISTORY</string>
+    <string name="no_total_data">No powerlifting total data yet.\nRecord lifts with weight for SQ, BP, and DL.</string>
+    <string name="tap_for_details">Tap for details</string>
+
+    <!-- Backup / Restore -->
+    <string name="backup_restore">BACKUP / RESTORE</string>
+    <string name="backup_data">EXPORT BACKUP</string>
+    <string name="restore_data">IMPORT BACKUP</string>
+    <string name="backup_success">Backup exported successfully!</string>
+    <string name="restore_success">Data restored successfully! Restart the app.</string>
+    <string name="restore_confirm">This will replace ALL current data (lifts, settings, custom exercises) with the backup data. This cannot be undone.\n\nContinue?</string>
+    <string name="confirm_restore">Restore</string>
+
     <!-- Common -->
     <string name="by_ff9">by ff9</string>
     <string name="error">Error: %s</string>

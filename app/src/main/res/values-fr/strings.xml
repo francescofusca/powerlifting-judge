@@ -172,4 +172,41 @@
     <string name="powerlifting_total">TOTAL POWERLIFTING</string>
     <string name="relative_strength">Force Relative</string>
 
+    <!-- Custom Exercises -->
+    <string name="add_exercise">Ajouter un exercice</string>
+    <string name="exercise_name">Nom de l\'exercice</string>
+    <string name="add">Ajouter</string>
+    <string name="delete_exercise">Supprimer l\'exercice</string>
+    <string name="delete_exercise_message">Supprimer \"%s\" et tous ses paramètres ?</string>
+    <string name="exercise_exists">Un exercice avec ce nom existe déjà</string>
+    <string name="custom_exercise_instruction">1. Placez le téléphone fermement sur la partie du corps impliquée\n2. Appuyez sur START et préparez-vous\n3. Effectuez le mouvement jusqu\'à %d°</string>
+    <string name="calibrate_custom">Placez le téléphone fermement. Appuyez sur START, effectuez le mouvement et MAINTENEZ la position cible pendant 3 secondes.</string>
+    <string name="custom_hint">Exercice personnalisé</string>
+    <string name="custom_exercises_section">EXERCICES PERSONNALISÉS</string>
+
+    <!-- Hold Points -->
+    <string name="hold_points">POINTS DE MAINTIEN</string>
+    <string name="add_hold_point">Ajouter un point de maintien</string>
+    <string name="hold_angle">Angle de maintien</string>
+    <string name="hold_duration">Durée du maintien</string>
+    <string name="hold_at_angle">Maintien à %1$d\u00B0 pendant %2$s</string>
+    <string name="no_hold_points">Aucun point de maintien</string>
+
+    <!-- Powerlifting Total Detail -->
+    <string name="current_total">TOTAL ACTUEL</string>
+    <string name="personal_records">RECORDS PERSONNELS</string>
+    <string name="best_session_total">MEILLEUR TOTAL DE SESSION</string>
+    <string name="session_history">HISTORIQUE DES SESSIONS</string>
+    <string name="no_total_data">Pas encore de données de total.\nEnregistrez des levées avec poids pour SQ, BP et DL.</string>
+    <string name="tap_for_details">Appuyez pour les détails</string>
+
+    <!-- Backup / Restore -->
+    <string name="backup_restore">SAUVEGARDE / RESTAURATION</string>
+    <string name="backup_data">EXPORTER SAUVEGARDE</string>
+    <string name="restore_data">IMPORTER SAUVEGARDE</string>
+    <string name="backup_success">Sauvegarde exportée avec succès !</string>
+    <string name="restore_success">Données restaurées ! Redémarrez l\'app.</string>
+    <string name="restore_confirm">Cela remplacera TOUTES les données actuelles (levées, paramètres, exercices) par celles de la sauvegarde. Cette action est irréversible.\n\nContinuer ?</string>
+    <string name="confirm_restore">Restaurer</string>
+
 </resources>

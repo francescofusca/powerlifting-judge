@@ -49,11 +49,16 @@ fun LiftStatsScreen(
     val state by statsFlow.collectAsStateWithLifecycle(initialValue = LiftStatsUiState())
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
 
-    val displayName = when (LiftType.fromDisplayName(liftType)) {
-        LiftType.SQUAT -> stringResource(R.string.squat)
-        LiftType.BENCH_PRESS -> stringResource(R.string.bench_press)
-        LiftType.DEADLIFT -> stringResource(R.string.deadlift)
-        LiftType.SUMO_DEADLIFT -> stringResource(R.string.sumo_deadlift)
+    val isBuiltIn = LiftType.entries.any { it.displayName.equals(liftType, ignoreCase = true) }
+    val displayName = if (isBuiltIn) {
+        when (LiftType.fromDisplayName(liftType)) {
+            LiftType.SQUAT -> stringResource(R.string.squat)
+            LiftType.BENCH_PRESS -> stringResource(R.string.bench_press)
+            LiftType.DEADLIFT -> stringResource(R.string.deadlift)
+            LiftType.SUMO_DEADLIFT -> stringResource(R.string.sumo_deadlift)
+        }
+    } else {
+        liftType
     }
 
     Scaffold(

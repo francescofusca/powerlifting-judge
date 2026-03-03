@@ -1,6 +1,7 @@
 package com.ff9.poweliftjudge
 
 import android.app.Application
+import com.ff9.poweliftjudge.data.backup.BackupManager
 import com.ff9.poweliftjudge.data.preferences.UserPreferences
 import com.ff9.poweliftjudge.data.repository.LiftRepository
 import com.ff9.poweliftjudge.data.sensor.SensorDataSource
@@ -14,6 +15,7 @@ class PLJudgeApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        container.preferences.migrateBenchHoldToHoldPoints()
     }
 }
 
@@ -22,4 +24,5 @@ class AppContainer(context: Application) {
     val repository = LiftRepository(database.liftDao())
     val preferences = UserPreferences(context)
     val sensorDataSource = SensorDataSource(context)
+    val backupManager = BackupManager(repository, preferences)
 }

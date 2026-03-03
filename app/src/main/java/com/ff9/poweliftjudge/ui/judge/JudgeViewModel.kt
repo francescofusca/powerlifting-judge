@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.ff9.poweliftjudge.PLJudgeApp
 import com.ff9.poweliftjudge.R
 import com.ff9.poweliftjudge.data.sensor.SensorData
+import com.ff9.poweliftjudge.model.HoldPoint
 import com.ff9.poweliftjudge.model.LiftType
 import com.ff9.poweliftjudge.model.RepStats
 import kotlinx.coroutines.Job
@@ -33,14 +34,8 @@ enum class StatusColor {
     DEFAULT, PREPARING, GO, GOOD_LIFT, READY_NEXT, FAILED
 }
 
-/** Bench press sub-states for deterministic behavior */
-private enum class BenchPhase {
-    IDLE,
-    DESCENDING,
-    HOLDING,
-    PRESS_SIGNAL,
-    ASCENDING,
-    REP_COMPLETE
+private enum class LiftPhase {
+    IDLE, DESCENDING, HOLDING, GOOD_LIFT, ASCENDING, REP_COMPLETE
 }
 
 data class JudgeUiState(
@@ -55,10 +50,16 @@ data class JudgeUiState(
     val statusText: String = "PRESS START",
     val statusColor: StatusColor = StatusColor.DEFAULT,
     val isGoodLift: Boolean = false,
-    // Competition bench
-    val benchPauseActive: Boolean = false,
-    val benchPauseProgress: Float = 0f,
-    val benchPauseCompleted: Boolean = false
+    // Hold system (replaces bench-specific fields)
+    val holdActive: Boolean = false,
+    val holdProgress: Float = 0f,
+    val holdCompleted: Boolean = false,
+    val currentHoldIndex: Int = 0,
+    val totalHoldPoints: Int = 0,
+    val currentHoldAngle: Int = 0,
+    // Custom exercise
+    val isCustomExercise: Boolean = false,
+    val exerciseName: String = ""
 )
 
 class JudgeViewModel(application: Application) : AndroidViewModel(application) {
@@ -85,14 +86,10 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
     private var ascentStartTime: Long = 0
     private val repStatsList = mutableListOf<RepStats>()
 
-    // Standard lift state
-    private var isLiftGood = false
-    private var wasInTargetZone = false
-
     // Throttle
     private var lastUiUpdate = 0L
 
-    // Low-pass filter for bench hold stability
+    // Low-pass filter for hold stability
     private var filteredDelta: Float = 0f
     private val lowPassAlpha = 0.8f
 
@@ -104,12 +101,14 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
     // Vibrator
     private val vibrator: Vibrator
 
-    // Competition bench state machine
-    private var benchPhase: BenchPhase = BenchPhase.IDLE
-    private var benchPauseJob: Job? = null
-    private var pauseAngleRef: Float = 0f
-    private val benchPauseTolerance = 5f // degrees
-    private var benchHoldDurationMs: Long = 1000L
+    // Unified lift state machine
+    private var liftPhase: LiftPhase = LiftPhase.IDLE
+    private var holdPoints: List<HoldPoint> = emptyList()
+    private var currentHoldIndex: Int = 0
+    private var completedHoldIndices = mutableSetOf<Int>()
+    private var holdPauseJob: Job? = null
+    private var holdAngleRef: Float = 0f
+    private val holdTolerance = 5f
 
     init {
         val ctx = getApplication<Application>()
@@ -123,16 +122,41 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun initialize(liftTypeName: String) {
-        val liftType = LiftType.fromDisplayName(liftTypeName)
-        val threshold = preferences.getThreshold(liftType)
-        benchHoldDurationMs = (preferences.benchHoldDuration * 1000).toLong()
-        _uiState.update {
-            it.copy(
-                liftType = liftType,
-                targetAngle = threshold,
-                statusText = "PRESS START",
-                statusColor = StatusColor.DEFAULT
-            )
+        val isBuiltIn = LiftType.entries.any { it.displayName.equals(liftTypeName, ignoreCase = true) }
+        if (isBuiltIn) {
+            val liftType = LiftType.fromDisplayName(liftTypeName)
+            val threshold = preferences.getThreshold(liftType)
+            holdPoints = preferences.getHoldPoints(liftType)
+            _uiState.update {
+                it.copy(
+                    liftType = liftType,
+                    targetAngle = threshold,
+                    statusText = "PRESS START",
+                    statusColor = StatusColor.DEFAULT,
+                    isCustomExercise = false,
+                    exerciseName = liftType.displayName,
+                    totalHoldPoints = holdPoints.size
+                )
+            }
+        } else {
+            val customExercise = preferences.getCustomExercises()
+                .find { it.name.equals(liftTypeName, ignoreCase = true) }
+            val prefsKey = customExercise?.prefsKey
+                ?: "threshold_custom_${liftTypeName.lowercase().replace(" ", "_")}"
+            val defaultThreshold = customExercise?.defaultThreshold ?: 90
+            val threshold = preferences.getThresholdByKey(prefsKey, defaultThreshold)
+            holdPoints = preferences.getHoldPoints(prefsKey)
+            _uiState.update {
+                it.copy(
+                    liftType = LiftType.SQUAT,
+                    targetAngle = threshold,
+                    statusText = "PRESS START",
+                    statusColor = StatusColor.DEFAULT,
+                    isCustomExercise = true,
+                    exerciseName = liftTypeName,
+                    totalHoldPoints = holdPoints.size
+                )
+            }
         }
         initAudio()
         startSensorCollection()
@@ -195,143 +219,122 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        val isBench = state.liftType == LiftType.BENCH_PRESS
-        if (isBench) {
-            processBenchLogic(delta, now)
-        } else {
-            processStandardLiftLogic(delta, now)
-        }
+        processLiftLogic(delta, now)
     }
 
-    // ── Standard lift logic (squat, deadlift, sumo) ──
-
-    private fun processStandardLiftLogic(delta: Float, currentTime: Long) {
+    private fun processLiftLogic(delta: Float, currentTime: Long) {
         val state = _uiState.value
         val targetAngle = state.targetAngle
         val threshold = targetAngle * 0.2f
+        val hysteresis = targetAngle * 0.1f
 
-        // Start descent tracking
-        if (delta < threshold && !wasInTargetZone && descentStartTime == 0L) {
-            repStartTime = currentTime
-            descentStartTime = currentTime
-        } else if (delta >= targetAngle && !wasInTargetZone && descentStartTime > 0L) {
-            ascentStartTime = currentTime
-            wasInTargetZone = true
-        }
-
-        // Good lift detection
-        if (delta >= targetAngle && !isLiftGood) {
-            isLiftGood = true
-            onGoodLift()
-        }
-
-        // Return to start position - complete rep
-        if (delta < threshold && isLiftGood && wasInTargetZone) {
-            recordRepStats(currentTime)
-            resetRepState()
-            _uiState.update {
-                it.copy(
-                    statusText = "READY FOR NEXT REP",
-                    statusColor = StatusColor.READY_NEXT,
-                    isGoodLift = false
-                )
-            }
-        }
-    }
-
-    // ── Bench press state machine ──
-
-    private fun processBenchLogic(delta: Float, currentTime: Long) {
-        val state = _uiState.value
-        val targetAngle = state.targetAngle
-        val threshold = targetAngle * 0.2f
-        val hysteresis = targetAngle * 0.1f // 10% hysteresis for phase transitions
-
-        when (benchPhase) {
-            BenchPhase.IDLE -> {
+        when (liftPhase) {
+            LiftPhase.IDLE -> {
                 if (delta > threshold) {
-                    benchPhase = BenchPhase.DESCENDING
+                    liftPhase = LiftPhase.DESCENDING
                     repStartTime = currentTime
                     descentStartTime = currentTime
                 }
             }
 
-            BenchPhase.DESCENDING -> {
-                if (delta >= targetAngle) {
+            LiftPhase.DESCENDING -> {
+                // Check if there's an uncompleted hold point we've reached
+                val nextHoldIndex = findNextHoldIndex(delta)
+                if (nextHoldIndex != null) {
+                    val holdPoint = holdPoints[nextHoldIndex]
+                    currentHoldIndex = nextHoldIndex
+                    liftPhase = LiftPhase.HOLDING
+                    startHold(holdPoint)
+                } else if (allHoldsCompleted() && delta >= targetAngle) {
+                    // All holds done (or none), reached target
                     ascentStartTime = currentTime
-                    if (benchHoldDurationMs <= 0L) {
-                        // No hold required - skip directly to signal
-                        benchPhase = BenchPhase.PRESS_SIGNAL
-                        onGoodLift()
-                    } else {
-                        benchPhase = BenchPhase.HOLDING
-                        startBenchPause(delta)
-                    }
+                    liftPhase = LiftPhase.GOOD_LIFT
+                    onGoodLift()
                 }
                 // If returns to zero before reaching target, reset
                 if (delta < threshold) {
-                    benchPhase = BenchPhase.IDLE
+                    liftPhase = LiftPhase.IDLE
                     descentStartTime = 0L
                     repStartTime = 0L
+                    completedHoldIndices.clear()
+                    _uiState.update { it.copy(currentHoldIndex = 0) }
                 }
             }
 
-            BenchPhase.HOLDING -> {
-                // Stability is checked inside the coroutine timer.
-                // If athlete moves too much, benchPauseJob cancels and we go back.
-                if (delta < targetAngle - hysteresis) {
-                    // Moved away from target - cancel hold
-                    cancelBenchPause()
-                    benchPhase = BenchPhase.DESCENDING
+            LiftPhase.HOLDING -> {
+                val holdPoint = holdPoints[currentHoldIndex]
+                // If moved away from hold angle, cancel
+                if (delta < holdPoint.angleDegrees - holdTolerance) {
+                    cancelHold()
+                    liftPhase = LiftPhase.DESCENDING
                     _uiState.update {
-                        it.copy(benchPauseActive = false, benchPauseProgress = 0f)
+                        it.copy(holdActive = false, holdProgress = 0f)
                     }
                 }
             }
 
-            BenchPhase.PRESS_SIGNAL -> {
-                // Wait for athlete to start ascending (pressing up)
+            LiftPhase.GOOD_LIFT -> {
                 if (delta < targetAngle - hysteresis) {
-                    benchPhase = BenchPhase.ASCENDING
+                    liftPhase = LiftPhase.ASCENDING
                 }
             }
 
-            BenchPhase.ASCENDING -> {
+            LiftPhase.ASCENDING -> {
                 if (delta < threshold) {
-                    // Returned to start - rep complete
-                    benchPhase = BenchPhase.REP_COMPLETE
+                    liftPhase = LiftPhase.REP_COMPLETE
                     recordRepStats(currentTime)
-                    benchPhase = BenchPhase.IDLE
+                    liftPhase = LiftPhase.IDLE
                     resetRepState()
                     _uiState.update {
                         it.copy(
                             statusText = "READY FOR NEXT REP",
                             statusColor = StatusColor.READY_NEXT,
                             isGoodLift = false,
-                            benchPauseActive = false,
-                            benchPauseProgress = 0f,
-                            benchPauseCompleted = false
+                            holdActive = false,
+                            holdProgress = 0f,
+                            holdCompleted = false,
+                            currentHoldIndex = 0
                         )
                     }
                 }
             }
 
-            BenchPhase.REP_COMPLETE -> {
-                // Transient state, should immediately go to IDLE
-                benchPhase = BenchPhase.IDLE
+            LiftPhase.REP_COMPLETE -> {
+                liftPhase = LiftPhase.IDLE
             }
         }
     }
 
-    private fun startBenchPause(currentDelta: Float) {
-        cancelBenchPause()
-        pauseAngleRef = filteredDelta
+    private fun findNextHoldIndex(delta: Float): Int? {
+        for (i in holdPoints.indices) {
+            if (i in completedHoldIndices) continue
+            val hp = holdPoints[i]
+            if (delta >= hp.angleDegrees) {
+                return i
+            }
+        }
+        return null
+    }
+
+    private fun allHoldsCompleted(): Boolean {
+        return completedHoldIndices.size >= holdPoints.size
+    }
+
+    private fun startHold(holdPoint: HoldPoint) {
+        cancelHold()
+        holdAngleRef = filteredDelta
         _uiState.update {
-            it.copy(benchPauseActive = true, benchPauseProgress = 0f, benchPauseCompleted = false)
+            it.copy(
+                holdActive = true,
+                holdProgress = 0f,
+                holdCompleted = false,
+                currentHoldIndex = currentHoldIndex,
+                currentHoldAngle = holdPoint.angleDegrees
+            )
         }
 
-        benchPauseJob = viewModelScope.launch {
-            val totalMs = benchHoldDurationMs
+        holdPauseJob = viewModelScope.launch {
+            val totalMs = holdPoint.durationMs
             val stepMs = 50L
             var elapsed = 0L
 
@@ -340,53 +343,48 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
                 elapsed += stepMs
 
                 // Check stability using filtered delta
-                if (abs(filteredDelta - pauseAngleRef) > benchPauseTolerance) {
-                    // Moved too much - go back to descending
-                    benchPhase = BenchPhase.DESCENDING
+                if (abs(filteredDelta - holdAngleRef) > holdTolerance) {
+                    liftPhase = LiftPhase.DESCENDING
                     _uiState.update {
-                        it.copy(benchPauseActive = false, benchPauseProgress = 0f)
+                        it.copy(holdActive = false, holdProgress = 0f)
                     }
                     return@launch
                 }
 
                 _uiState.update {
-                    it.copy(benchPauseProgress = elapsed.toFloat() / totalMs)
+                    it.copy(holdProgress = elapsed.toFloat() / totalMs)
                 }
             }
 
             // Hold completed successfully
+            completedHoldIndices.add(currentHoldIndex)
             _uiState.update {
                 it.copy(
-                    benchPauseActive = false,
-                    benchPauseProgress = 1f,
-                    benchPauseCompleted = true
+                    holdActive = false,
+                    holdProgress = 1f,
+                    holdCompleted = allHoldsCompleted()
                 )
             }
 
-            // Play bench bip (PRESS command) - only sound here
-            playBenchBip()
+            playHoldBip()
 
-            // Transition to PRESS_SIGNAL - now count the rep
-            benchPhase = BenchPhase.PRESS_SIGNAL
-            val newReps = _uiState.value.repsCount + 1
-            val currentTime = System.currentTimeMillis()
-            val timeSinceLastRep = currentTime - lastRepTime
-            repTimesList.add(timeSinceLastRep)
-            lastRepTime = currentTime
-            _uiState.update {
-                it.copy(
-                    repsCount = newReps,
-                    statusText = "GOOD LIFT!",
-                    statusColor = StatusColor.GOOD_LIFT,
-                    isGoodLift = true
-                )
+            // Check if all holds done and we're at or past target
+            val currentDelta = filteredDelta
+            val targetAngle = _uiState.value.targetAngle
+            if (allHoldsCompleted() && currentDelta >= targetAngle) {
+                ascentStartTime = System.currentTimeMillis()
+                liftPhase = LiftPhase.GOOD_LIFT
+                onGoodLift()
+            } else {
+                // More holds to go or haven't reached target yet
+                liftPhase = LiftPhase.DESCENDING
             }
         }
     }
 
-    private fun cancelBenchPause() {
-        benchPauseJob?.cancel()
-        benchPauseJob = null
+    private fun cancelHold() {
+        holdPauseJob?.cancel()
+        holdPauseJob = null
     }
 
     // ── Common helpers ──
@@ -421,12 +419,11 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun resetRepState() {
-        isLiftGood = false
-        wasInTargetZone = false
         repStartTime = 0
         descentStartTime = 0
         ascentStartTime = 0
-        cancelBenchPause()
+        completedHoldIndices.clear()
+        cancelHold()
     }
 
     private fun playBip() {
@@ -437,7 +434,7 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) {}
     }
 
-    private fun playBenchBip() {
+    private fun playHoldBip() {
         try {
             mediaPlayerBenchBip?.let { mp ->
                 if (mp.isPlaying) mp.seekTo(0) else mp.start()
@@ -449,9 +446,9 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
         val countdownSeconds = preferences.countdownTimer
         repStatsList.clear()
         repTimesList.clear()
-        wasInTargetZone = false
-        isLiftGood = false
-        benchPhase = BenchPhase.IDLE
+        liftPhase = LiftPhase.IDLE
+        currentHoldIndex = 0
+        completedHoldIndices.clear()
         filteredDelta = 0f
 
         _uiState.update {
@@ -461,9 +458,10 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
                 statusText = "GET READY...",
                 statusColor = StatusColor.PREPARING,
                 countdownValue = countdownSeconds,
-                benchPauseActive = false,
-                benchPauseProgress = 0f,
-                benchPauseCompleted = false
+                holdActive = false,
+                holdProgress = 0f,
+                holdCompleted = false,
+                currentHoldIndex = 0
             )
         }
 
@@ -498,10 +496,6 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Build finish data, including a partial rep stats entry for the last
-     * rep if it was counted but hasn't returned to zero yet.
-     */
     fun getFinishData(): FinishData {
         val totalTime = if (setStartTime > 0) System.currentTimeMillis() - setStartTime else 0L
         val repsCount = _uiState.value.repsCount
@@ -517,7 +511,6 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val statsJsonArray = JSONArray()
-        // Only include up to repsCount entries
         val statsToInclude = repStatsList.take(repsCount)
         for (stat in statsToInclude) {
             val obj = JSONObject()
@@ -526,8 +519,9 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
             obj.put("totalTime", stat.totalTime)
             statsJsonArray.put(obj)
         }
+        val state = _uiState.value
         return FinishData(
-            liftType = _uiState.value.liftType.displayName,
+            liftType = if (state.isCustomExercise) state.exerciseName else state.liftType.displayName,
             repsCount = repsCount,
             repStatsJson = statsJsonArray.toString(),
             totalTime = totalTime
@@ -553,7 +547,7 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
         sensorJob?.cancel()
         countdownJob?.cancel()
-        benchPauseJob?.cancel()
+        holdPauseJob?.cancel()
         mediaPlayerBip?.release()
         mediaPlayerStart?.release()
         mediaPlayerBenchBip?.release()

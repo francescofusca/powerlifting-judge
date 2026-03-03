@@ -8,6 +8,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ff9.poweliftjudge.PLJudgeApp
 import com.ff9.poweliftjudge.database.Lift
+import com.ff9.poweliftjudge.model.CustomExercise
 import com.ff9.poweliftjudge.model.LiftType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,28 +27,33 @@ import java.util.Locale
 data class HistoryUiState(
     val isSelectionMode: Boolean = false,
     val selectedIds: Set<Int> = emptySet(),
-    val selectedTab: LiftType? = null,
-    val exportResult: ExportResult? = null
+    val selectedTab: String? = null,
+    val exportResult: ExportResult? = null,
+    val customExercises: List<CustomExercise> = emptyList()
 )
 
 enum class ExportResult { SUCCESS, EMPTY }
 
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = (application as PLJudgeApp).container.repository
+    private val container = (application as PLJudgeApp).container
+    private val repository = container.repository
+    private val preferences = container.preferences
 
-    private val _uiState = MutableStateFlow(HistoryUiState())
+    private val _uiState = MutableStateFlow(
+        HistoryUiState(customExercises = preferences.getCustomExercises())
+    )
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
-    private val _selectedTab = MutableStateFlow<LiftType?>(null)
+    private val _selectedTab = MutableStateFlow<String?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val lifts: StateFlow<List<Lift>> = _selectedTab.flatMapLatest { tab ->
         if (tab == null) repository.getAllLiftsFlow()
-        else repository.getLiftsByTypeFlow(tab.displayName)
+        else repository.getLiftsByTypeFlow(tab)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun selectTab(type: LiftType?) {
+    fun selectTab(type: String?) {
         _selectedTab.value = type
         _uiState.update { it.copy(selectedTab = type, isSelectionMode = false, selectedIds = emptySet()) }
     }

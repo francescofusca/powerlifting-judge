@@ -1,6 +1,11 @@
 package com.ff9.poweliftjudge.ui.settings
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,16 +13,22 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +44,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -49,7 +62,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ff9.poweliftjudge.LocaleHelper
 import com.ff9.poweliftjudge.R
+import com.ff9.poweliftjudge.data.backup.BackupManager
+import com.ff9.poweliftjudge.model.HoldPoint
+import com.ff9.poweliftjudge.ui.theme.PrimaryRed
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +85,44 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val restartMessage = stringResource(R.string.restart_for_theme)
+    var showRestoreConfirm by remember { mutableStateOf(false) }
+    var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
+
+    val backupSuccessMsg = stringResource(R.string.backup_success)
+    val backupErrorMsg = stringResource(R.string.error, "Export failed")
+    val restoreSuccessMsg = stringResource(R.string.restore_success)
+
+    // Export launcher: create a .json file
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportBackup { json ->
+                if (json != null) {
+                    try {
+                        context.contentResolver.openOutputStream(uri)?.use { os ->
+                            os.write(json.toByteArray())
+                        }
+                        scope.launch { snackbarHostState.showSnackbar(backupSuccessMsg) }
+                    } catch (_: Exception) {
+                        scope.launch { snackbarHostState.showSnackbar(backupErrorMsg) }
+                    }
+                } else {
+                    scope.launch { snackbarHostState.showSnackbar(backupErrorMsg) }
+                }
+            }
+        }
+    }
+
+    // Import launcher: pick a .json file
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            pendingRestoreUri = uri
+            showRestoreConfirm = true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -113,7 +170,11 @@ fun SettingsScreen(
                 title = stringResource(R.string.squat_target),
                 value = state.squatThreshold,
                 onValueChange = { viewModel.setSquatThreshold(it) },
-                onCalibrate = { onCalibrate("Squat") }
+                onCalibrate = { onCalibrate("Squat") },
+                holdPoints = state.holdPointsMap["threshold_squat"] ?: emptyList(),
+                maxAngle = state.squatThreshold,
+                onAddHoldPoint = { viewModel.addHoldPoint("threshold_squat", it) },
+                onRemoveHoldPoint = { viewModel.removeHoldPoint("threshold_squat", it) }
             )
 
             // Bench
@@ -121,36 +182,23 @@ fun SettingsScreen(
                 title = stringResource(R.string.bench_target),
                 value = state.benchThreshold,
                 onValueChange = { viewModel.setBenchThreshold(it) },
-                onCalibrate = { onCalibrate("Bench Press") }
+                onCalibrate = { onCalibrate("Bench Press") },
+                holdPoints = state.holdPointsMap["threshold_bench"] ?: emptyList(),
+                maxAngle = state.benchThreshold,
+                onAddHoldPoint = { viewModel.addHoldPoint("threshold_bench", it) },
+                onRemoveHoldPoint = { viewModel.removeHoldPoint("threshold_bench", it) }
             )
-
-            // Bench Hold Duration
-            SettingsCard(title = stringResource(R.string.bench_hold_duration)) {
-                val displayValue = if (state.benchHoldDuration == 0f) {
-                    stringResource(R.string.hold_disabled)
-                } else {
-                    String.format("%.1fs", state.benchHoldDuration)
-                }
-                Text(
-                    text = displayValue,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Slider(
-                    value = state.benchHoldDuration,
-                    onValueChange = { viewModel.setBenchHoldDuration(it) },
-                    valueRange = 0f..3f,
-                    steps = 29,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
 
             // Deadlift
             ThresholdCard(
                 title = stringResource(R.string.deadlift_range),
                 value = state.deadliftThreshold,
                 onValueChange = { viewModel.setDeadliftThreshold(it) },
-                onCalibrate = { onCalibrate("Deadlift") }
+                onCalibrate = { onCalibrate("Deadlift") },
+                holdPoints = state.holdPointsMap["threshold_deadlift"] ?: emptyList(),
+                maxAngle = state.deadliftThreshold,
+                onAddHoldPoint = { viewModel.addHoldPoint("threshold_deadlift", it) },
+                onRemoveHoldPoint = { viewModel.removeHoldPoint("threshold_deadlift", it) }
             )
 
             // Sumo
@@ -158,8 +206,66 @@ fun SettingsScreen(
                 title = stringResource(R.string.sumo_range),
                 value = state.sumoThreshold,
                 onValueChange = { viewModel.setSumoThreshold(it) },
-                onCalibrate = { onCalibrate("Sumo Deadlift") }
+                onCalibrate = { onCalibrate("Sumo Deadlift") },
+                holdPoints = state.holdPointsMap["threshold_sumo"] ?: emptyList(),
+                maxAngle = state.sumoThreshold,
+                onAddHoldPoint = { viewModel.addHoldPoint("threshold_sumo", it) },
+                onRemoveHoldPoint = { viewModel.removeHoldPoint("threshold_sumo", it) }
             )
+
+            // Custom Exercises
+            if (state.customExercises.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.custom_exercises_section),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                var deleteTarget by remember { mutableStateOf<String?>(null) }
+
+                state.customExercises.forEach { exercise ->
+                    val threshold = state.customThresholds[exercise.name] ?: exercise.defaultThreshold
+                    CustomThresholdCard(
+                        title = exercise.name.uppercase(),
+                        value = threshold,
+                        onValueChange = { viewModel.setCustomThreshold(exercise.name, it) },
+                        onCalibrate = { onCalibrate(exercise.name) },
+                        onDelete = { deleteTarget = exercise.name },
+                        holdPoints = state.holdPointsMap[exercise.prefsKey] ?: emptyList(),
+                        maxAngle = threshold,
+                        onAddHoldPoint = { viewModel.addHoldPoint(exercise.prefsKey, it) },
+                        onRemoveHoldPoint = { viewModel.removeHoldPoint(exercise.prefsKey, it) }
+                    )
+                }
+
+                // Delete confirmation dialog
+                deleteTarget?.let { name ->
+                    AlertDialog(
+                        onDismissRequest = { deleteTarget = null },
+                        title = { Text(stringResource(R.string.delete_exercise)) },
+                        text = { Text(stringResource(R.string.delete_exercise_message, name)) },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    viewModel.deleteCustomExercise(name)
+                                    deleteTarget = null
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed)
+                            ) {
+                                Text(stringResource(R.string.delete))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { deleteTarget = null }) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                        }
+                    )
+                }
+            }
 
             // Sound Selection
             SettingsCard(title = stringResource(R.string.start_sound)) {
@@ -255,6 +361,28 @@ fun SettingsScreen(
                 }
             }
 
+            // Backup / Restore
+            SettingsCard(title = stringResource(R.string.backup_restore)) {
+                FilledTonalButton(
+                    onClick = {
+                        val date = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+                        exportLauncher.launch("pljudge_backup_$date.json")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.backup_data))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                FilledTonalButton(
+                    onClick = {
+                        importLauncher.launch(arrayOf("application/json", "*/*"))
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.restore_data))
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -267,6 +395,54 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    // Restore confirmation dialog
+    if (showRestoreConfirm) {
+        AlertDialog(
+            onDismissRequest = {
+                showRestoreConfirm = false
+                pendingRestoreUri = null
+            },
+            title = { Text(stringResource(R.string.restore_data)) },
+            text = { Text(stringResource(R.string.restore_confirm)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRestoreConfirm = false
+                        val uri = pendingRestoreUri ?: return@Button
+                        pendingRestoreUri = null
+                        try {
+                            val jsonString = context.contentResolver.openInputStream(uri)
+                                ?.bufferedReader()?.use { it.readText() } ?: return@Button
+                            viewModel.importBackup(jsonString) { result ->
+                                scope.launch {
+                                    when (result) {
+                                        is BackupManager.ImportResult.Success ->
+                                            snackbarHostState.showSnackbar(restoreSuccessMsg)
+                                        is BackupManager.ImportResult.Error ->
+                                            snackbarHostState.showSnackbar(result.message)
+                                    }
+                                }
+                            }
+                        } catch (_: Exception) {
+                            scope.launch { snackbarHostState.showSnackbar("Restore failed") }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryRed)
+                ) {
+                    Text(stringResource(R.string.confirm_restore))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showRestoreConfirm = false
+                    pendingRestoreUri = null
+                }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 
     // Sound dialog
@@ -390,11 +566,15 @@ private fun ThresholdCard(
     title: String,
     value: Int,
     onValueChange: (Int) -> Unit,
-    onCalibrate: () -> Unit
+    onCalibrate: () -> Unit,
+    holdPoints: List<HoldPoint>,
+    maxAngle: Int,
+    onAddHoldPoint: (HoldPoint) -> Unit,
+    onRemoveHoldPoint: (Int) -> Unit
 ) {
     SettingsCard(title = title) {
         Text(
-            text = "$value°",
+            text = "$value\u00B0",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )
@@ -412,5 +592,188 @@ private fun ThresholdCard(
         ) {
             Text(stringResource(R.string.calibrate))
         }
+        HoldPointsSection(
+            holdPoints = holdPoints,
+            maxAngle = maxAngle,
+            onAdd = onAddHoldPoint,
+            onRemove = onRemoveHoldPoint
+        )
+    }
+}
+
+@Composable
+private fun CustomThresholdCard(
+    title: String,
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    onCalibrate: () -> Unit,
+    onDelete: () -> Unit,
+    holdPoints: List<HoldPoint>,
+    maxAngle: Int,
+    onAddHoldPoint: (HoldPoint) -> Unit,
+    onRemoveHoldPoint: (Int) -> Unit
+) {
+    SettingsCard(title = title) {
+        Text(
+            text = "$value\u00B0",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Slider(
+            value = value.toFloat(),
+            onValueChange = { onValueChange(it.roundToInt()) },
+            valueRange = 0f..130f,
+            steps = 129,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            FilledTonalButton(
+                onClick = onCalibrate,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(stringResource(R.string.calibrate))
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.delete),
+                    tint = PrimaryRed,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+        HoldPointsSection(
+            holdPoints = holdPoints,
+            maxAngle = maxAngle,
+            onAdd = onAddHoldPoint,
+            onRemove = onRemoveHoldPoint
+        )
+    }
+}
+
+@Composable
+private fun HoldPointsSection(
+    holdPoints: List<HoldPoint>,
+    maxAngle: Int,
+    onAdd: (HoldPoint) -> Unit,
+    onRemove: (Int) -> Unit
+) {
+    var showAddDialog by remember { mutableStateOf(false) }
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+    Text(
+        text = stringResource(R.string.hold_points),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+    )
+
+    Spacer(modifier = Modifier.height(4.dp))
+
+    if (holdPoints.isEmpty()) {
+        Text(
+            text = stringResource(R.string.no_hold_points),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    } else {
+        holdPoints.forEachIndexed { index, hp ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.hold_at_angle,
+                        hp.angleDegrees,
+                        String.format("%.1fs", hp.durationMs / 1000f)
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { onRemove(index) },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete),
+                        tint = PrimaryRed,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(4.dp))
+
+    TextButton(
+        onClick = { showAddDialog = true },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+        Text(stringResource(R.string.add_hold_point))
+    }
+
+    if (showAddDialog) {
+        var angle by remember { mutableIntStateOf(maxAngle.coerceAtLeast(1) / 2) }
+        var duration by remember { mutableFloatStateOf(1.0f) }
+        val effectiveMax = maxAngle.coerceAtLeast(1)
+
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text(stringResource(R.string.add_hold_point)) },
+            text = {
+                Column {
+                    Text(
+                        text = "${stringResource(R.string.hold_angle)}: $angle\u00B0",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = angle.toFloat(),
+                        onValueChange = { angle = it.roundToInt() },
+                        valueRange = 1f..effectiveMax.toFloat(),
+                        steps = (effectiveMax - 2).coerceAtLeast(0),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "${stringResource(R.string.hold_duration)}: ${String.format("%.1fs", duration)}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = duration,
+                        onValueChange = { duration = (it * 10).roundToInt() / 10f },
+                        valueRange = 0.1f..5f,
+                        steps = 48,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    onAdd(HoldPoint(angle, (duration * 1000).toLong()))
+                    showAddDialog = false
+                }) {
+                    Text(stringResource(R.string.add))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }

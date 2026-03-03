@@ -97,7 +97,9 @@ fun HistoryScreen(
         }
     }
 
-    val tabs = listOf<LiftType?>(null) + LiftType.entries
+    val builtInTabs = LiftType.entries.map { it.displayName }
+    val customTabs = state.customExercises.map { it.name }
+    val tabs = listOf<String?>(null) + builtInTabs + customTabs
     val selectedTabIndex = tabs.indexOf(state.selectedTab)
 
     Scaffold(
@@ -145,18 +147,19 @@ fun HistoryScreen(
                 selectedTabIndex = if (selectedTabIndex >= 0) selectedTabIndex else 0,
                 edgePadding = 16.dp
             ) {
-                tabs.forEachIndexed { index, liftType ->
+                tabs.forEachIndexed { index, tabName ->
                     Tab(
                         selected = selectedTabIndex == index,
-                        onClick = { viewModel.selectTab(liftType) },
+                        onClick = { viewModel.selectTab(tabName) },
                         text = {
                             Text(
-                                text = when (liftType) {
+                                text = when (tabName) {
                                     null -> stringResource(R.string.all_lifts)
-                                    LiftType.SQUAT -> stringResource(R.string.squat)
-                                    LiftType.BENCH_PRESS -> stringResource(R.string.bench_press)
-                                    LiftType.DEADLIFT -> stringResource(R.string.deadlift)
-                                    LiftType.SUMO_DEADLIFT -> stringResource(R.string.sumo_deadlift)
+                                    LiftType.SQUAT.displayName -> stringResource(R.string.squat)
+                                    LiftType.BENCH_PRESS.displayName -> stringResource(R.string.bench_press)
+                                    LiftType.DEADLIFT.displayName -> stringResource(R.string.deadlift)
+                                    LiftType.SUMO_DEADLIFT.displayName -> stringResource(R.string.sumo_deadlift)
+                                    else -> tabName
                                 }
                             )
                         }
@@ -197,7 +200,7 @@ fun HistoryScreen(
                         item {
                             StatsPreviewCard(
                                 lifts = lifts,
-                                onClick = { onStatsClick(state.selectedTab!!.displayName) }
+                                onClick = { onStatsClick(state.selectedTab!!) }
                             )
                         }
                     }

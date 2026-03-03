@@ -172,4 +172,41 @@
     <string name="powerlifting_total">パワーリフティング合計</string>
     <string name="relative_strength">相対筋力</string>
 
+    <!-- Custom Exercises -->
+    <string name="add_exercise">エクササイズを追加</string>
+    <string name="exercise_name">エクササイズ名</string>
+    <string name="add">追加</string>
+    <string name="delete_exercise">エクササイズを削除</string>
+    <string name="delete_exercise_message">\"%s\"とすべての設定を削除しますか？</string>
+    <string name="exercise_exists">同じ名前のエクササイズが既に存在します</string>
+    <string name="custom_exercise_instruction">1. 関係する体の部位にスマホをしっかり固定\n2. STARTを押して準備\n3. %d°まで動作を実行</string>
+    <string name="calibrate_custom">スマホをしっかり固定してください。STARTを押し、動作を行い、目標位置で3秒間キープしてください。</string>
+    <string name="custom_hint">カスタムエクササイズ</string>
+    <string name="custom_exercises_section">カスタムエクササイズ</string>
+
+    <!-- Hold Points -->
+    <string name="hold_points">ホールドポイント</string>
+    <string name="add_hold_point">ホールドポイント追加</string>
+    <string name="hold_angle">ホールド角度</string>
+    <string name="hold_duration">ホールド時間</string>
+    <string name="hold_at_angle">%1$d\u00B0で%2$sホールド</string>
+    <string name="no_hold_points">ホールドポイントなし</string>
+
+    <!-- Powerlifting Total Detail -->
+    <string name="current_total">現在のトータル</string>
+    <string name="personal_records">自己ベスト</string>
+    <string name="best_session_total">ベストセッショントータル</string>
+    <string name="session_history">セッション履歴</string>
+    <string name="no_total_data">トータルデータがありません。\nSQ、BP、DLの重量付き記録を追加してください。</string>
+    <string name="tap_for_details">タップで詳細表示</string>
+
+    <!-- Backup / Restore -->
+    <string name="backup_restore">バックアップ / 復元</string>
+    <string name="backup_data">バックアップをエクスポート</string>
+    <string name="restore_data">バックアップをインポート</string>
+    <string name="backup_success">バックアップをエクスポートしました！</string>
+    <string name="restore_success">データを復元しました！アプリを再起動してください。</string>
+    <string name="restore_confirm">現在のすべてのデータ（記録、設定、カスタムエクササイズ）がバックアップデータに置き換えられます。元に戻すことはできません。\n\n続行しますか？</string>
+    <string name="confirm_restore">復元</string>
+
 </resources>

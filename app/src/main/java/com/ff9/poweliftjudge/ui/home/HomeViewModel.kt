@@ -3,8 +3,12 @@ package com.ff9.poweliftjudge.ui.home
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.ff9.poweliftjudge.PLJudgeApp
+import com.ff9.poweliftjudge.model.CustomExercise
 import com.ff9.poweliftjudge.model.LiftType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
 data class TotalUiState(
@@ -23,6 +27,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val container = (application as PLJudgeApp).container
     private val repository = container.repository
     private val preferences = container.preferences
+
+    private val _customExercises = MutableStateFlow(preferences.getCustomExercises())
+    val customExercises: StateFlow<List<CustomExercise>> = _customExercises.asStateFlow()
+
+    fun addExercise(name: String): Boolean {
+        val success = preferences.addCustomExercise(name)
+        if (success) _customExercises.value = preferences.getCustomExercises()
+        return success
+    }
+
+    fun removeExercise(name: String) {
+        preferences.removeCustomExercise(name)
+        _customExercises.value = preferences.getCustomExercises()
+    }
+
+    fun refreshExercises() {
+        _customExercises.value = preferences.getCustomExercises()
+    }
 
     val totalState: Flow<TotalUiState> = repository.getAllLiftsFlow().map { lifts ->
         val weightUnit = preferences.weightUnit

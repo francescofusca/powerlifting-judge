@@ -32,7 +32,9 @@ data class CalibrateUiState(
     val currentDelta: Float = 0f,
     val detectedAngle: Int = 0,
     val liftType: LiftType = LiftType.SQUAT,
-    val statusText: String = ""
+    val statusText: String = "",
+    val isCustomExercise: Boolean = false,
+    val customExerciseName: String = ""
 )
 
 class CalibrateViewModel(application: Application) : AndroidViewModel(application) {
@@ -81,9 +83,28 @@ class CalibrateViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    private var customPrefsKey: String? = null
+
     fun initialize(liftTypeName: String) {
-        val liftType = LiftType.fromDisplayName(liftTypeName)
-        _uiState.update { it.copy(liftType = liftType) }
+        val isBuiltIn = LiftType.entries.any { it.displayName.equals(liftTypeName, ignoreCase = true) }
+        if (isBuiltIn) {
+            val liftType = LiftType.fromDisplayName(liftTypeName)
+            _uiState.update {
+                it.copy(liftType = liftType, isCustomExercise = false, customExerciseName = "")
+            }
+        } else {
+            val customExercise = preferences.getCustomExercises()
+                .find { it.name.equals(liftTypeName, ignoreCase = true) }
+            customPrefsKey = customExercise?.prefsKey
+                ?: "threshold_custom_${liftTypeName.lowercase().replace(" ", "_")}"
+            _uiState.update {
+                it.copy(
+                    liftType = LiftType.SQUAT, // fallback
+                    isCustomExercise = true,
+                    customExerciseName = liftTypeName
+                )
+            }
+        }
         initAudio()
         startSensorCollection()
     }
@@ -148,10 +169,13 @@ class CalibrateViewModel(application: Application) : AndroidViewModel(applicatio
         if (range < stabilityThreshold && avg >= minDelta) {
             // Stable position detected
             val detected = avg.roundToInt()
-            val liftType = state.liftType
 
             // Save to preferences
-            preferences.setThreshold(liftType, detected)
+            if (state.isCustomExercise && customPrefsKey != null) {
+                preferences.setThresholdByKey(customPrefsKey!!, detected)
+            } else {
+                preferences.setThreshold(state.liftType, detected)
+            }
 
             // Play confirmation
             playBip()

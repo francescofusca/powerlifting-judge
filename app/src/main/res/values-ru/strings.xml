@@ -172,4 +172,41 @@
     <string name="powerlifting_total">СУММА ТРОЕБОРЬЯ</string>
     <string name="relative_strength">Относительная сила</string>
 
+    <!-- Custom Exercises -->
+    <string name="add_exercise">Добавить упражнение</string>
+    <string name="exercise_name">Название упражнения</string>
+    <string name="add">Добавить</string>
+    <string name="delete_exercise">Удалить упражнение</string>
+    <string name="delete_exercise_message">Удалить \"%s\" и все настройки?</string>
+    <string name="exercise_exists">Упражнение с таким названием уже существует</string>
+    <string name="custom_exercise_instruction">1. Надёжно закрепите телефон на задействованной части тела\n2. Нажмите START и приготовьтесь\n3. Выполните движение до %d°</string>
+    <string name="calibrate_custom">Надёжно закрепите телефон. Нажмите START, выполните движение и УДЕРЖИВАЙТЕ целевую позицию 3 секунды.</string>
+    <string name="custom_hint">Пользовательское упражнение</string>
+    <string name="custom_exercises_section">ПОЛЬЗОВАТЕЛЬСКИЕ УПРАЖНЕНИЯ</string>
+
+    <!-- Hold Points -->
+    <string name="hold_points">ТОЧКИ УДЕРЖАНИЯ</string>
+    <string name="add_hold_point">Добавить точку удержания</string>
+    <string name="hold_angle">Угол удержания</string>
+    <string name="hold_duration">Длительность удержания</string>
+    <string name="hold_at_angle">Удержание на %1$d\u00B0 в течение %2$s</string>
+    <string name="no_hold_points">Нет точек удержания</string>
+
+    <!-- Powerlifting Total Detail -->
+    <string name="current_total">ТЕКУЩИЙ ТОТАЛ</string>
+    <string name="personal_records">ЛИЧНЫЕ РЕКОРДЫ</string>
+    <string name="best_session_total">ЛУЧШИЙ ТОТАЛ ЗА СЕССИЮ</string>
+    <string name="session_history">ИСТОРИЯ СЕССИЙ</string>
+    <string name="no_total_data">Пока нет данных по тоталу.\nЗаписывайте подъёмы с весом для SQ, BP и DL.</string>
+    <string name="tap_for_details">Нажмите для подробностей</string>
+
+    <!-- Backup / Restore -->
+    <string name="backup_restore">РЕЗЕРВНАЯ КОПИЯ</string>
+    <string name="backup_data">ЭКСПОРТ КОПИИ</string>
+    <string name="restore_data">ИМПОРТ КОПИИ</string>
+    <string name="backup_success">Копия экспортирована!</string>
+    <string name="restore_success">Данные восстановлены! Перезапустите приложение.</string>
+    <string name="restore_confirm">Это заменит ВСЕ текущие данные (подъёмы, настройки, упражнения) данными из копии. Это нельзя отменить.\n\nПродолжить?</string>
+    <string name="confirm_restore">Восстановить</string>
+
 </resources>

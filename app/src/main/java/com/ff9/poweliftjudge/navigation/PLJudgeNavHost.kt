@@ -15,6 +15,7 @@ import com.ff9.poweliftjudge.ui.calibrate.CalibrateScreen
 import com.ff9.poweliftjudge.ui.settings.SettingsScreen
 import com.ff9.poweliftjudge.ui.stats.LiftStatsScreen
 import com.ff9.poweliftjudge.ui.summary.SetSummaryScreen
+import com.ff9.poweliftjudge.ui.total.PowerliftingTotalScreen
 import java.net.URLDecoder
 
 @Composable
@@ -35,6 +36,9 @@ fun PLJudgeNavHost(
                 },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
+                },
+                onTotalClick = {
+                    navController.navigate(Screen.PowerliftingTotal.route)
                 }
             )
         }
@@ -139,6 +143,12 @@ fun PLJudgeNavHost(
             CalibrateScreen(
                 liftType = liftType,
                 onDone = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.PowerliftingTotal.route) {
+            PowerliftingTotalScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

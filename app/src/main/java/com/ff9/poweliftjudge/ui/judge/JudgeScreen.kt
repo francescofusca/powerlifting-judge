@@ -47,7 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ff9.poweliftjudge.R
 import com.ff9.poweliftjudge.model.LiftType
 import com.ff9.poweliftjudge.ui.judge.components.AngleIndicator
-import com.ff9.poweliftjudge.ui.judge.components.CompetitionPauseTimer
+import com.ff9.poweliftjudge.ui.judge.components.HoldProgressIndicator
 import com.ff9.poweliftjudge.ui.theme.PrimaryRed
 import com.ff9.poweliftjudge.ui.theme.SuccessGreen
 import com.ff9.poweliftjudge.ui.theme.WarningYellow
@@ -70,11 +70,15 @@ fun JudgeScreen(
         viewModel.initialize(liftType)
     }
 
-    val instructionText = when (state.liftType) {
-        LiftType.SQUAT -> stringResource(R.string.squat_instruction, state.targetAngle)
-        LiftType.BENCH_PRESS -> stringResource(R.string.bench_instruction, state.targetAngle)
-        LiftType.DEADLIFT -> stringResource(R.string.deadlift_instruction, state.targetAngle)
-        LiftType.SUMO_DEADLIFT -> stringResource(R.string.sumo_instruction, state.targetAngle)
+    val instructionText = if (state.isCustomExercise) {
+        stringResource(R.string.custom_exercise_instruction, state.targetAngle)
+    } else {
+        when (state.liftType) {
+            LiftType.SQUAT -> stringResource(R.string.squat_instruction, state.targetAngle)
+            LiftType.BENCH_PRESS -> stringResource(R.string.bench_instruction, state.targetAngle)
+            LiftType.DEADLIFT -> stringResource(R.string.deadlift_instruction, state.targetAngle)
+            LiftType.SUMO_DEADLIFT -> stringResource(R.string.sumo_instruction, state.targetAngle)
+        }
     }
 
     val statusColor = when (state.statusColor) {
@@ -98,7 +102,8 @@ fun JudgeScreen(
         ) {
             // Lift type title
             Text(
-                text = state.liftType.displayName.uppercase(),
+                text = if (state.isCustomExercise) state.exerciseName.uppercase()
+                       else state.liftType.displayName.uppercase(),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -153,12 +158,15 @@ fun JudgeScreen(
                         isGoodLift = state.isGoodLift
                     )
 
-                    // Competition bench pause timer
-                    if (state.liftType == LiftType.BENCH_PRESS) {
+                    // Hold progress indicator (for any lift with hold points)
+                    if (state.totalHoldPoints > 0) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        CompetitionPauseTimer(
-                            isActive = state.benchPauseActive,
-                            progress = state.benchPauseProgress
+                        HoldProgressIndicator(
+                            isActive = state.holdActive,
+                            progress = state.holdProgress,
+                            currentIndex = state.currentHoldIndex,
+                            totalPoints = state.totalHoldPoints,
+                            holdAngle = state.currentHoldAngle
                         )
                     }
                 }

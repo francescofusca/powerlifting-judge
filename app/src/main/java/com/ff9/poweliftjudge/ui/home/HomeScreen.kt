@@ -14,10 +14,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -25,13 +30,19 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -51,13 +62,28 @@ fun HomeScreen(
     onLiftSelected: (String) -> Unit,
     onHistoryClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onTotalClick: () -> Unit = {},
     homeViewModel: HomeViewModel = viewModel()
 ) {
     val totalState by homeViewModel.totalState.collectAsStateWithLifecycle(initialValue = TotalUiState())
+    val customExercises by homeViewModel.customExercises.collectAsStateWithLifecycle()
     var visible by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         visible = true
+    }
+
+    // Refresh custom exercises when returning from Settings
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                homeViewModel.refreshExercises()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Column(
@@ -66,11 +92,12 @@ fun HomeScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
             .displayCutoutPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top section: title
-        Spacer(modifier = Modifier.weight(0.8f))
+        Spacer(modifier = Modifier.height(48.dp))
 
         Text(
             text = stringResource(R.string.app_name),
@@ -87,9 +114,9 @@ fun HomeScreen(
             modifier = Modifier.padding(top = 4.dp)
         )
 
-        Spacer(modifier = Modifier.weight(0.6f))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // Center section: cards
+        // Center section: built-in cards
         val lifts = listOf(
             Triple(LiftType.SQUAT, R.string.squat, R.string.squat_hint),
             Triple(LiftType.BENCH_PRESS, R.string.bench_press, R.string.bench_hint),
@@ -105,18 +132,38 @@ fun HomeScreen(
                 visible = visible,
                 onClick = { onLiftSelected(liftType.displayName) }
             )
-            if (index < lifts.lastIndex) {
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            Spacer(modifier = Modifier.height(10.dp))
         }
+
+        // Custom exercise cards
+        customExercises.forEachIndexed { index, exercise ->
+            AnimatedLiftCard(
+                name = exercise.name,
+                hint = stringResource(R.string.custom_hint),
+                delayMs = (lifts.size + index) * 100,
+                visible = visible,
+                onClick = { onLiftSelected(exercise.name) }
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        // Add Exercise card
+        AnimatedLiftCard(
+            name = stringResource(R.string.add_exercise),
+            hint = "",
+            delayMs = (lifts.size + customExercises.size) * 100,
+            visible = visible,
+            onClick = { showAddDialog = true },
+            icon = Icons.Default.Add
+        )
 
         // Powerlifting Total card
         if (totalState.hasData) {
             Spacer(modifier = Modifier.height(16.dp))
-            PowerliftingTotalCard(totalState)
+            PowerliftingTotalCard(totalState, onClick = onTotalClick)
         }
 
-        Spacer(modifier = Modifier.weight(0.6f))
+        Spacer(modifier = Modifier.height(32.dp))
 
         // Bottom section: buttons + credits
         Row(
@@ -156,6 +203,60 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
     }
+
+    // Add Exercise Dialog
+    if (showAddDialog) {
+        var exerciseName by remember { mutableStateOf("") }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text(stringResource(R.string.add_exercise)) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = exerciseName,
+                        onValueChange = {
+                            exerciseName = it
+                            errorMessage = null
+                        },
+                        label = { Text(stringResource(R.string.exercise_name)) },
+                        singleLine = true,
+                        isError = errorMessage != null,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (exerciseName.isBlank()) return@Button
+                        val success = homeViewModel.addExercise(exerciseName.trim())
+                        if (success) {
+                            showAddDialog = false
+                        } else {
+                            errorMessage = "Exercise already exists"
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.add))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -164,7 +265,8 @@ private fun AnimatedLiftCard(
     hint: String,
     delayMs: Int,
     visible: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.FitnessCenter
 ) {
     var animStarted by remember { mutableStateOf(false) }
 
@@ -204,7 +306,7 @@ private fun AnimatedLiftCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                Icons.Default.FitnessCenter,
+                icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(28.dp)
@@ -228,8 +330,9 @@ private fun AnimatedLiftCard(
 }
 
 @Composable
-private fun PowerliftingTotalCard(state: TotalUiState) {
+private fun PowerliftingTotalCard(state: TotalUiState, onClick: () -> Unit = {}) {
     ElevatedCard(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
     ) {
@@ -239,6 +342,11 @@ private fun PowerliftingTotalCard(state: TotalUiState) {
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = stringResource(R.string.tap_for_details),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
             Row(
