@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.ceil
 
 enum class JudgePhase {
@@ -41,7 +42,6 @@ private enum class LiftPhase {
 data class JudgeUiState(
     val phase: JudgePhase = JudgePhase.IDLE,
     val countdownValue: Int = 0,
-    val currentAngle: Float = 0f,
     val angleDelta: Float = 0f,
     val progress: Int = 0,
     val repsCount: Int = 0,
@@ -71,7 +71,10 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(JudgeUiState())
     val uiState: StateFlow<JudgeUiState> = _uiState.asStateFlow()
 
-    private var startPitch: Float? = null
+    private var startGravity: FloatArray? = null
+    private var currentGx: Float = 0f
+    private var currentGy: Float = 0f
+    private var currentGz: Float = 1f
     private var sensorJob: Job? = null
     private var countdownJob: Job? = null
 
@@ -187,23 +190,20 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun processSensor(data: SensorData) {
-        val pitch = data.pitch
-        if (pitch.isNaN()) return
+        if (data.gx.isNaN() || data.gy.isNaN() || data.gz.isNaN()) return
+        currentGx = data.gx
+        currentGy = data.gy
+        currentGz = data.gz
 
         val now = System.currentTimeMillis()
         if (now - lastUiUpdate < 50) return
         lastUiUpdate = now
 
         val state = _uiState.value
-        if (state.phase != JudgePhase.ACTIVE) {
-            _uiState.update { it.copy(currentAngle = pitch) }
-            return
-        }
+        if (state.phase != JudgePhase.ACTIVE) return
 
-        val base = startPitch ?: return
-        var delta = abs(pitch - base)
-        if (delta.isNaN()) delta = 0f
-        if (delta > 180) delta = 360 - delta
+        val base = startGravity ?: return
+        val delta = angleBetween(base[0], base[1], base[2], currentGx, currentGy, currentGz)
 
         // Apply low-pass filter
         filteredDelta = lowPassAlpha * filteredDelta + (1 - lowPassAlpha) * delta
@@ -213,13 +213,20 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
 
         _uiState.update {
             it.copy(
-                currentAngle = pitch,
                 angleDelta = delta,
                 progress = progress
             )
         }
 
         processLiftLogic(delta, now)
+    }
+
+    private fun angleBetween(
+        ax: Float, ay: Float, az: Float,
+        bx: Float, by: Float, bz: Float
+    ): Float {
+        val dot = (ax * bx + ay * by + az * bz).coerceIn(-1f, 1f)
+        return Math.toDegrees(acos(dot.toDouble())).toFloat()
     }
 
     private fun processLiftLogic(delta: Float, currentTime: Long) {
@@ -480,7 +487,7 @@ class JudgeViewModel(application: Application) : AndroidViewModel(application) {
                 delay(1000)
             }
 
-            startPitch = _uiState.value.currentAngle
+            startGravity = floatArrayOf(currentGx, currentGy, currentGz)
             setStartTime = System.currentTimeMillis()
             lastRepTime = setStartTime
 

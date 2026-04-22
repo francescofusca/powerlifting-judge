@@ -16,6 +16,7 @@ import com.ff9.poweliftjudge.ui.settings.SettingsScreen
 import com.ff9.poweliftjudge.ui.stats.LiftStatsScreen
 import com.ff9.poweliftjudge.ui.summary.SetSummaryScreen
 import com.ff9.poweliftjudge.ui.total.PowerliftingTotalScreen
+import com.ff9.poweliftjudge.ui.visual.VisualJudgeScreen
 import java.net.URLDecoder
 
 @Composable
@@ -30,6 +31,9 @@ fun PLJudgeNavHost(
             HomeScreen(
                 onLiftSelected = { liftType ->
                     navController.navigate(Screen.Judge.createRoute(liftType))
+                },
+                onVisualSelected = { liftType ->
+                    navController.navigate(Screen.VisualJudge.createRoute(liftType))
                 },
                 onHistoryClick = {
                     navController.navigate(Screen.History.route)
@@ -148,6 +152,17 @@ fun PLJudgeNavHost(
 
         composable(Screen.PowerliftingTotal.route) {
             PowerliftingTotalScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.VisualJudge.route,
+            arguments = listOf(navArgument("liftType") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val liftType = backStackEntry.arguments?.getString("liftType") ?: "Squat"
+            VisualJudgeScreen(
+                liftName = liftType,
                 onBack = { navController.popBackStack() }
             )
         }

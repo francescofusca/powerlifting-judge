@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,18 +58,23 @@ import com.ff9.poweliftjudge.R
 import com.ff9.poweliftjudge.model.LiftType
 import kotlinx.coroutines.delay
 
+// The 4 main lifts that support visual (camera) mode
+private val VISUAL_SUPPORTED = setOf("Squat", "Bench Press", "Deadlift", "Sumo Deadlift")
+
 @Composable
 fun HomeScreen(
     onLiftSelected: (String) -> Unit,
     onHistoryClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onTotalClick: () -> Unit = {},
+    onVisualSelected: (String) -> Unit = {},
     homeViewModel: HomeViewModel = viewModel()
 ) {
     val totalState by homeViewModel.totalState.collectAsStateWithLifecycle(initialValue = TotalUiState())
     val customExercises by homeViewModel.customExercises.collectAsStateWithLifecycle()
     var visible by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var modeDialogLift by remember { mutableStateOf<String?>(null) }  // lift waiting for mode selection
 
     LaunchedEffect(Unit) {
         visible = true
@@ -130,7 +136,13 @@ fun HomeScreen(
                 hint = stringResource(hintRes),
                 delayMs = index * 100,
                 visible = visible,
-                onClick = { onLiftSelected(liftType.displayName) }
+                onClick = {
+                    if (liftType.displayName in VISUAL_SUPPORTED) {
+                        modeDialogLift = liftType.displayName
+                    } else {
+                        onLiftSelected(liftType.displayName)
+                    }
+                }
             )
             Spacer(modifier = Modifier.height(10.dp))
         }
@@ -202,6 +214,38 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    // Mode selection dialog (Sensor vs Visual)
+    val liftForDialog = modeDialogLift
+    if (liftForDialog != null) {
+        AlertDialog(
+            onDismissRequest = { modeDialogLift = null },
+            title = { Text(liftForDialog.uppercase()) },
+            text  = { Text("Come vuoi eseguire l'alzata?") },
+            confirmButton = {
+                Button(onClick = {
+                    modeDialogLift = null
+                    onVisualSelected(liftForDialog)
+                }) {
+                    Icon(
+                        Icons.Default.Videocam,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Visiva 3D")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    modeDialogLift = null
+                    onLiftSelected(liftForDialog)
+                }) {
+                    Text("Sensore")
+                }
+            }
+        )
     }
 
     // Add Exercise Dialog

@@ -74,6 +74,16 @@ dependencies {
     // Navigation
     implementation(libs.androidx.navigation.compose)
 
+    // CameraX
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.camerax.video)
+
+    // ML Kit Pose Detection
+    implementation(libs.mlkit.pose)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

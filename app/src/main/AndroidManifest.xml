@@ -3,6 +3,12 @@
     package="com.ff9.poweliftjudge">
 
     <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
     <application
         android:name=".PLJudgeApp"
@@ -19,6 +25,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".ui.visual.ScreenRecordService"
+            android:foregroundServiceType="mediaProjection"
+            android:exported="false"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

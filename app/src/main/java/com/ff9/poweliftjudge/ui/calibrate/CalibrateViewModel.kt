@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.roundToInt
 
 enum class CalibratePhase {
@@ -49,8 +49,10 @@ class CalibrateViewModel(application: Application) : AndroidViewModel(applicatio
     private var sensorJob: Job? = null
     private var countdownJob: Job? = null
 
-    private var startPitch: Float? = null
-    private var currentPitch: Float = 0f
+    private var startGravity: FloatArray? = null
+    private var currentGx: Float = 0f
+    private var currentGy: Float = 0f
+    private var currentGz: Float = 1f
 
     // Stability detection
     private val bufferSize = 40 // ~2 seconds at 50ms
@@ -132,9 +134,10 @@ class CalibrateViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun processSensor(data: SensorData) {
-        val pitch = data.pitch
-        if (pitch.isNaN()) return
-        currentPitch = pitch
+        if (data.gx.isNaN() || data.gy.isNaN() || data.gz.isNaN()) return
+        currentGx = data.gx
+        currentGy = data.gy
+        currentGz = data.gz
 
         val now = System.currentTimeMillis()
         if (now - lastUiUpdate < 50) return
@@ -143,10 +146,8 @@ class CalibrateViewModel(application: Application) : AndroidViewModel(applicatio
         val state = _uiState.value
         if (state.phase != CalibratePhase.ACTIVE) return
 
-        val base = startPitch ?: return
-        var delta = abs(pitch - base)
-        if (delta.isNaN()) delta = 0f
-        if (delta > 180) delta = 360 - delta
+        val base = startGravity ?: return
+        val delta = angleBetween(base[0], base[1], base[2], currentGx, currentGy, currentGz)
 
         _uiState.update { it.copy(currentDelta = delta) }
 
@@ -211,7 +212,7 @@ class CalibrateViewModel(application: Application) : AndroidViewModel(applicatio
                 delay(1000)
             }
 
-            startPitch = currentPitch
+            startGravity = floatArrayOf(currentGx, currentGy, currentGz)
             activeStartTime = System.currentTimeMillis()
 
             _uiState.update {
@@ -257,5 +258,13 @@ class CalibrateViewModel(application: Application) : AndroidViewModel(applicatio
     override fun onCleared() {
         super.onCleared()
         cleanup()
+    }
+
+    private fun angleBetween(
+        ax: Float, ay: Float, az: Float,
+        bx: Float, by: Float, bz: Float
+    ): Float {
+        val dot = (ax * bx + ay * by + az * bz).coerceIn(-1f, 1f)
+        return Math.toDegrees(acos(dot.toDouble())).toFloat()
     }
 }

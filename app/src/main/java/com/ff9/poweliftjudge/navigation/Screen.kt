@@ -21,4 +21,7 @@ sealed class Screen(val route: String) {
         fun createRoute(liftType: String) = "calibrate/$liftType"
     }
     data object PowerliftingTotal : Screen("powerlifting_total")
+    data object VisualJudge : Screen("visual/{liftType}") {
+        fun createRoute(liftType: String) = "visual/$liftType"
+    }
 }
