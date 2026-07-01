@@ -23,14 +23,6 @@ powerlifting referee looks for. It counts valid reps, calls **GOOD LIFT / NO
 LIFT**, tracks time under tension and keeps a full history of every set so you
 can see how you progress over time.
 
-<div align="center">
-<img src="images/1.jpg" alt="Judge screen" width="240"/>
-&nbsp;&nbsp;
-<img src="images/2.jpg" alt="Live judging" width="240"/>
-&nbsp;&nbsp;
-<img src="images/3.jpg" alt="Set summary" width="240"/>
-</div>
-
 ## Features
 
 - **Two judging modes**
