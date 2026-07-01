@@ -37,6 +37,9 @@ android {
     buildFeatures {
         compose = true
     }
+    androidResources {
+        noCompress += "task"   // MediaPipe model assets must remain uncompressed
+    }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
@@ -81,8 +84,11 @@ dependencies {
     implementation(libs.camerax.view)
     implementation(libs.camerax.video)
 
-    // ML Kit Pose Detection
+    // ML Kit Pose Detection (kept for fallback / sensor mode unaffected)
     implementation(libs.mlkit.pose)
+
+    // MediaPipe Tasks Vision — high-quality 3D pose landmarker (heavy model, GPU)
+    implementation(libs.mediapipe.tasks.vision)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

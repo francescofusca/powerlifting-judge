@@ -11,12 +11,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LifecycleOwner
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.pose.Pose
-import com.google.mlkit.vision.pose.PoseDetection
-import com.google.mlkit.vision.pose.PoseDetector
-import com.google.mlkit.vision.pose.PoseLandmark
-import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,19 +18,20 @@ import kotlinx.coroutines.flow.update
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.sqrt
 
 // ── Per-rep statistics ──────────────────────────────────────────────────────
 
 data class RepVisualStat(
     val repNumber: Int,
-    val meanVelocity: Float,     // m/s
-    val peakVelocity: Float,     // m/s
-    val rangeOfMotionCm: Float,  // cm – hip vertical displacement
+    val meanVelocity: Float,
+    val peakVelocity: Float,
+    val rangeOfMotionCm: Float,
     val eccentricTimeMs: Long,
     val concentricTimeMs: Long,
-    val peakPowerW: Float,       // W = force × velocity
-    val backScore: Float         // 0-100, spine alignment
+    val peakPowerW: Float,
+    val backScore: Float
 )
 
 // ── UI State ────────────────────────────────────────────────────────────────
@@ -44,24 +39,24 @@ data class RepVisualStat(
 data class VisualJudgeUiState(
     val liftName: String = "",
     val analysis: AnalysisResult = AnalysisResult(),
-    val currentPose: Pose? = null,
-    // Live velocity
-    val currentVelocity: Float = 0f,   // m/s (positive = concentric)
+    val currentPose: PoseSnapshot? = null,
+    val currentVelocity: Float = 0f,
     val currentPowerW: Float = 0f,
     val currentBackScore: Float = 100f,
-    // Session
     val barbellKg: Float = 20f,
     val isActive: Boolean = false,
     val isRecording: Boolean = false,
     val savedVideoUri: Uri? = null,
     val repStats: List<RepVisualStat> = emptyList(),
     val showPostSeries: Boolean = false,
-    // Camera
     val cameraFacing: Int = CameraSelector.LENS_FACING_BACK,
-    val imageWidth: Int = 1,
+    val imageWidth: Int = 1,         // upright (after-rotation)
     val imageHeight: Int = 1,
-    val rotationDegrees: Int = 90
+    val rotationDegrees: Int = 90,
+    val detectorStatus: DetectorStatus = DetectorStatus.OK
 )
+
+enum class DetectorStatus { OK, CPU_FALLBACK, UNAVAILABLE }
 
 // ── ViewModel ───────────────────────────────────────────────────────────────
 
@@ -71,21 +66,33 @@ class VisualJudgeViewModel(application: Application) : AndroidViewModel(applicat
     val uiState: StateFlow<VisualJudgeUiState> = _uiState.asStateFlow()
 
     private val cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-    private val poseDetector: PoseDetector = PoseDetection.getClient(
-        AccuratePoseDetectorOptions.Builder()
-            .setDetectorMode(AccuratePoseDetectorOptions.STREAM_MODE)
-            .build()
-    )
+    /**
+     * MediaPipe init can fail on emulators that lack a proper GLES context.
+     * Wrapped in try/catch so opening the screen never crashes — the detector
+     * falls back internally (GPU → CPU → no-op).
+     */
+    private val poseDetector: MediaPipePoseDetector? = try {
+        MediaPipePoseDetector(application.applicationContext) { snap -> onPose(snap) }
+    } catch (t: Throwable) {
+        android.util.Log.e("VisualJudgeVM", "Pose detector init failed", t)
+        null
+    }
+
+    init {
+        val status = when {
+            poseDetector == null || !poseDetector.isReady -> DetectorStatus.UNAVAILABLE
+            poseDetector.isCpuFallback                    -> DetectorStatus.CPU_FALLBACK
+            else                                          -> DetectorStatus.OK
+        }
+        _uiState.update { it.copy(detectorStatus = status) }
+    }
 
     private lateinit var analyzer: LiftAnalyzer
     private var cameraProvider: ProcessCameraProvider? = null
 
-    // ── Velocity tracking ───────────────────────────────────────────────────
-    // Ring buffer: (timestamp_ms, hipY_px)
+    // ── Velocity tracking from MediaPipe world Y (metres) ───────────────────
     private val velocityBuffer = ArrayDeque<Pair<Long, Float>>(10)
-    private val VELOCITY_WINDOW = 6          // frames
-    private var bodyHeightPx = 400f          // updated from pose when athlete stands
-    private val ASSUMED_HEIGHT_M = 1.75f     // used to convert px→m
+    private val VELOCITY_WINDOW = 6
 
     // Per-rep tracking
     private var repStartTime = 0L
@@ -93,8 +100,8 @@ class VisualJudgeViewModel(application: Application) : AndroidViewModel(applicat
     private var repPeakVelocity = 0f
     private var velocitySumForMean = 0f
     private var velocitySampleCount = 0
-    private var hipYMin = Float.MAX_VALUE    // topmost position (concentric peak)
-    private var hipYMax = Float.MIN_VALUE    // lowest position (bottom of rep)
+    private var hipYMin = Float.MAX_VALUE
+    private var hipYMax = Float.MIN_VALUE
     private var lastRepCount = 0
     private var backScoreSum = 0f
     private var backScoreSamples = 0
@@ -148,61 +155,51 @@ class VisualJudgeViewModel(application: Application) : AndroidViewModel(applicat
 
     @androidx.camera.core.ExperimentalGetImage
     private fun analyzeImage(proxy: ImageProxy) {
-        val mediaImage = proxy.image ?: run { proxy.close(); return }
-        val image    = InputImage.fromMediaImage(mediaImage, proxy.imageInfo.rotationDegrees)
-        val w        = proxy.width
-        val h        = proxy.height
-        val rotation = proxy.imageInfo.rotationDegrees
-        val nowMs    = System.currentTimeMillis()
+        val rot = proxy.imageInfo.rotationDegrees
+        val uprightW = if (rot == 90 || rot == 270) proxy.height else proxy.width
+        val uprightH = if (rot == 90 || rot == 270) proxy.width  else proxy.height
+        _uiState.update { it.copy(imageWidth = uprightW, imageHeight = uprightH, rotationDegrees = rot) }
 
-        poseDetector.process(image)
-            .addOnSuccessListener { pose ->
-                val result     = analyzer.analyze(pose, nowMs)
-                val velocity   = computeVelocity(pose, nowMs, w, h, rotation)
-                val backScore  = computeBackScore(pose)
-                val barbellKg  = _uiState.value.barbellKg
-                val powerW     = if (velocity > 0f) barbellKg * 9.81f * velocity else 0f
-
-                updateRepTracking(result, velocity, backScore, barbellKg, nowMs)
-
-                _uiState.update {
-                    it.copy(
-                        analysis        = result,
-                        currentPose     = pose,
-                        currentVelocity = velocity,
-                        currentPowerW   = powerW,
-                        currentBackScore = backScore,
-                        imageWidth      = w,
-                        imageHeight     = h,
-                        rotationDegrees = rotation,
-                        repStats        = repStatsList.toList()
-                    )
-                }
-            }
-            .addOnCompleteListener { proxy.close() }
+        try {
+            poseDetector?.detectAsync(proxy, System.currentTimeMillis())
+        } finally {
+            proxy.close()
+        }
     }
 
-    // Velocity from hip Y tracking
-    private fun computeVelocity(pose: Pose, nowMs: Long, imgW: Int, imgH: Int, rotation: Int): Float {
-        val lHip = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)
-        val rHip = pose.getPoseLandmark(PoseLandmark.RIGHT_HIP)
-        val lAnkle = pose.getPoseLandmark(PoseLandmark.LEFT_ANKLE)
-        val lShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)
+    /** Callback invoked by [MediaPipePoseDetector] on its worker thread. */
+    private fun onPose(pose: PoseSnapshot) {
+        val nowMs = System.currentTimeMillis()
+        val result   = analyzer.analyze(pose, nowMs)
+        val velocity = computeVelocity(pose, nowMs)
+        val backScore = computeBackScore(pose)
+        val barbellKg = _uiState.value.barbellKg
+        val powerW    = if (velocity > 0f) barbellKg * 9.81f * velocity else 0f
 
-        val hip = when {
-            lHip != null && (lHip.inFrameLikelihood) > 0.4f -> lHip
-            rHip != null && (rHip.inFrameLikelihood) > 0.4f -> rHip
-            else -> return 0f
+        updateRepTracking(result, velocity, backScore, barbellKg, nowMs, pose)
+
+        _uiState.update {
+            it.copy(
+                analysis         = result,
+                currentPose      = pose,
+                currentVelocity  = velocity,
+                currentPowerW    = powerW,
+                currentBackScore = backScore,
+                repStats         = repStatsList.toList()
+            )
         }
+    }
 
-        // Calibrate body height px when athlete is roughly upright
-        if (lShoulder != null && lAnkle != null &&
-            lShoulder.inFrameLikelihood > 0.4f && lAnkle.inFrameLikelihood > 0.4f) {
-            val hPx = abs(lAnkle.position.y - lShoulder.position.y)
-            if (hPx > 50f) bodyHeightPx = hPx * 0.85f  // shoulder-to-ankle ≈ 85% of full height
-        }
-
-        val hipY = hip.position.y  // in image px
+    /**
+     * Velocity from world Y (metres). MediaPipe world coordinates are
+     * centred on the hip, with Y growing downward. Concentric (athlete
+     * moving up) corresponds to negative ΔY → we negate.
+     */
+    private fun computeVelocity(pose: PoseSnapshot, nowMs: Long): Float {
+        if (pose.vis(PoseSnapshot.LEFT_HIP) < 0.5f &&
+            pose.vis(PoseSnapshot.RIGHT_HIP) < 0.5f) return 0f
+        val hipY = if (pose.vis(PoseSnapshot.LEFT_HIP) >= pose.vis(PoseSnapshot.RIGHT_HIP))
+            pose.wy(PoseSnapshot.LEFT_HIP) else pose.wy(PoseSnapshot.RIGHT_HIP)
 
         velocityBuffer.addLast(nowMs to hipY)
         if (velocityBuffer.size > VELOCITY_WINDOW) velocityBuffer.removeFirst()
@@ -212,51 +209,40 @@ class VisualJudgeViewModel(application: Application) : AndroidViewModel(applicat
         val newest = velocityBuffer.last()
         val dtSec  = (newest.first - oldest.first) / 1000f
         if (dtSec < 0.01f) return 0f
-
-        // dy in image px → positive = downward in image; concentric = moving up = negative dy
-        val dyPx = newest.second - oldest.second
-        val dyM  = (dyPx / bodyHeightPx) * ASSUMED_HEIGHT_M
-        // Concentric is negative dy (hip moving up) → invert so concentric = positive
+        val dyM = newest.second - oldest.second
         return -dyM / dtSec
     }
 
-    // Back spine score: angle between (shoulder→hip) and (hip→knee) should be close to 180°
-    private fun computeBackScore(pose: Pose): Float {
-        val lShoulder = pose.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)
-        val lHip      = pose.getPoseLandmark(PoseLandmark.LEFT_HIP)
-        val lKnee     = pose.getPoseLandmark(PoseLandmark.LEFT_KNEE)
-        if (lShoulder == null || lHip == null || lKnee == null) return 100f
-        if (listOf(lShoulder, lHip, lKnee).any { it.inFrameLikelihood < 0.4f }) return 100f
-
-        // Vector shoulder→hip and hip→knee
-        val sx = lHip.position.x - lShoulder.position.x
-        val sy = lHip.position.y - lShoulder.position.y
-        val kx = lKnee.position.x - lHip.position.x
-        val ky = lKnee.position.y - lHip.position.y
-
-        val dot  = sx * kx + sy * ky
-        val magS = sqrt(sx * sx + sy * sy)
-        val magK = sqrt(kx * kx + ky * ky)
-        if (magS < 1f || magK < 1f) return 100f
-
+    /** Back score from 3D shoulder→hip→knee angle. 180° = perfect = 100. */
+    private fun computeBackScore(pose: PoseSnapshot): Float {
+        if (pose.vis(PoseSnapshot.LEFT_SHOULDER) < 0.5f ||
+            pose.vis(PoseSnapshot.LEFT_HIP) < 0.5f ||
+            pose.vis(PoseSnapshot.LEFT_KNEE) < 0.5f) return 100f
+        val sx = pose.wx(PoseSnapshot.LEFT_HIP) - pose.wx(PoseSnapshot.LEFT_SHOULDER)
+        val sy = pose.wy(PoseSnapshot.LEFT_HIP) - pose.wy(PoseSnapshot.LEFT_SHOULDER)
+        val sz = pose.wz(PoseSnapshot.LEFT_HIP) - pose.wz(PoseSnapshot.LEFT_SHOULDER)
+        val kx = pose.wx(PoseSnapshot.LEFT_KNEE) - pose.wx(PoseSnapshot.LEFT_HIP)
+        val ky = pose.wy(PoseSnapshot.LEFT_KNEE) - pose.wy(PoseSnapshot.LEFT_HIP)
+        val kz = pose.wz(PoseSnapshot.LEFT_KNEE) - pose.wz(PoseSnapshot.LEFT_HIP)
+        val dot  = sx * kx + sy * ky + sz * kz
+        val magS = sqrt(sx * sx + sy * sy + sz * sz)
+        val magK = sqrt(kx * kx + ky * ky + kz * kz)
+        if (magS < 1e-3f || magK < 1e-3f) return 100f
         val ratio = (dot / (magS * magK)).toDouble().coerceIn(-1.0, 1.0)
-        val angleDeg = Math.toDegrees(Math.acos(ratio)).toFloat()
-        // 180° = perfectly straight → score 100. 0° deviation → 100, max deviation 60° → 0
+        val angleDeg = Math.toDegrees(acos(ratio)).toFloat()
         return (100f - (angleDeg.coerceIn(120f, 180f) - 120f) * (100f / 60f)).coerceIn(0f, 100f)
     }
 
-    // Track per-rep stats
     private fun updateRepTracking(
-        result: AnalysisResult, velocity: Float, backScore: Float, barbellKg: Float, nowMs: Long
+        result: AnalysisResult, velocity: Float, backScore: Float,
+        barbellKg: Float, nowMs: Long, pose: PoseSnapshot
     ) {
         if (!_uiState.value.isActive) return
 
-        // New rep started
         if (result.repCount > lastRepCount) {
-            // Save stats for completed rep
             if (lastRepCount > 0 && repStartTime > 0) {
                 val concentricMs = nowMs - (if (eccentricEndTime > 0) eccentricEndTime else repStartTime)
-                val rangeM = (hipYMax - hipYMin) / bodyHeightPx * ASSUMED_HEIGHT_M
+                val rangeM = (hipYMax - hipYMin)
                 repStatsList.add(RepVisualStat(
                     repNumber        = lastRepCount,
                     meanVelocity     = if (velocitySampleCount > 0) velocitySumForMean / velocitySampleCount else 0f,
@@ -268,7 +254,6 @@ class VisualJudgeViewModel(application: Application) : AndroidViewModel(applicat
                     backScore        = if (backScoreSamples > 0) backScoreSum / backScoreSamples else 100f
                 ))
             }
-            // Reset for next rep
             lastRepCount         = result.repCount
             repStartTime         = nowMs
             eccentricEndTime     = 0L
@@ -281,28 +266,21 @@ class VisualJudgeViewModel(application: Application) : AndroidViewModel(applicat
             backScoreSamples     = 0
         }
 
-        // Accumulate within rep
         if (repStartTime > 0) {
             val absV = abs(velocity)
             if (absV > repPeakVelocity) repPeakVelocity = absV
-            if (velocity > 0.05f) { // concentric
-                velocitySumForMean  += absV
+            if (velocity > 0.05f) {
+                velocitySumForMean += absV
                 velocitySampleCount++
             }
-            if (velocity < -0.05f && eccentricEndTime == 0L) {
-                eccentricEndTime = nowMs  // transition point
-            }
-            val hipY = _uiState.value.currentPose
-                ?.getPoseLandmark(PoseLandmark.LEFT_HIP)?.position?.y ?: return
+            if (velocity < -0.05f && eccentricEndTime == 0L) eccentricEndTime = nowMs
+            val hipY = pose.wy(PoseSnapshot.LEFT_HIP)
             if (hipY < hipYMin) hipYMin = hipY
             if (hipY > hipYMax) hipYMax = hipY
             backScoreSum    += backScore
             backScoreSamples++
         }
     }
-
-    // Recording state is driven externally by ScreenRecordService via callbacks
-    // (onScreenRecordingStarted / onScreenRecordingSaved)
 
     // ── Actions ───────────────────────────────────────────────────────────────
 
@@ -318,25 +296,25 @@ class VisualJudgeViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun dismissPostSeries() = _uiState.update { it.copy(showPostSeries = false) }
-
     fun dismissSaveDialog() = _uiState.update { it.copy(savedVideoUri = null) }
 
     fun resetAnalyzer() {
         analyzer.reset()
         repStatsList.clear()
-        lastRepCount    = 0; repStartTime = 0L; eccentricEndTime = 0L
+        lastRepCount = 0; repStartTime = 0L; eccentricEndTime = 0L
         repPeakVelocity = 0f; velocitySumForMean = 0f; velocitySampleCount = 0
         hipYMin = Float.MAX_VALUE; hipYMax = Float.MIN_VALUE
         backScoreSum = 0f; backScoreSamples = 0
         velocityBuffer.clear()
-        _uiState.update { it.copy(analysis = AnalysisResult(), currentPose = null, repStats = emptyList(), isActive = false, showPostSeries = false) }
+        _uiState.update { it.copy(analysis = AnalysisResult(), currentPose = null,
+            repStats = emptyList(), isActive = false, showPostSeries = false) }
     }
 
     override fun onCleared() {
         super.onCleared()
         cameraProvider?.unbindAll()
         cameraExecutor.shutdown()
-        poseDetector.close()
+        poseDetector?.close()
         ScreenRecordService.onSaved = null
     }
 }

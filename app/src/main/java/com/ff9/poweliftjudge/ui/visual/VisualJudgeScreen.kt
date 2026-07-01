@@ -178,13 +178,12 @@ fun VisualJudgeScreen(
 
         // ── Skeleton overlay (draws on top of camera) ─────────────────────────
         PoseOverlay(
-            pose            = state.currentPose,
-            imageWidth      = state.imageWidth,
-            imageHeight     = state.imageHeight,
-            rotationDegrees = state.rotationDegrees,
-            isFrontCamera   = state.cameraFacing == CameraSelector.LENS_FACING_FRONT,
-            analysis        = state.analysis,
-            modifier        = Modifier.fillMaxSize()
+            pose          = state.currentPose,
+            imageWidth    = state.imageWidth,
+            imageHeight   = state.imageHeight,
+            isFrontCamera = state.cameraFacing == CameraSelector.LENS_FACING_FRONT,
+            analysis      = state.analysis,
+            modifier      = Modifier.fillMaxSize()
         )
 
         // ── Top gradient bar ──────────────────────────────────────────────────
@@ -307,6 +306,25 @@ fun VisualJudgeScreen(
                 color = GREEN,
                 trackColor = Color.White.copy(alpha = 0.2f)
             )
+        }
+
+        // ── Detector status banner ───────────────────────────────────────────
+        if (state.detectorStatus != DetectorStatus.OK) {
+            val (msg, color) = when (state.detectorStatus) {
+                DetectorStatus.UNAVAILABLE -> "Pose detector non disponibile su questo dispositivo (emulatore?)" to RED
+                DetectorStatus.CPU_FALLBACK -> "GPU non disponibile — uso CPU (più lento)" to YELLOW
+                else -> "" to Color.Transparent
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 90.dp)
+                    .background(color.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(msg, color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
         }
 
         // ── REC badge ────────────────────────────────────────────────────────
