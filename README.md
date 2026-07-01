@@ -83,7 +83,7 @@ can see how you progress over time.
 ## Getting started
 
 ```bash
-git clone https://github.com/<your-username>/powerlifting-judge.git
+git clone https://github.com/francescofusca/powerlifting-judge.git
 cd powerlifting-judge
 
 # Build a debug APK
